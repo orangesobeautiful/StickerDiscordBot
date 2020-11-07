@@ -1,0 +1,11 @@
+Flask
+Flask-SSLify
+Flask-CORS
+discord.py[voice] >= 1.3.4
+pytube3
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+APScheduler
+sqlalchemy
+pymysql
