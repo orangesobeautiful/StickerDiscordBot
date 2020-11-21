@@ -81,7 +81,7 @@ class UpdatedFolder(_Base):
     path = sqlalchemy.Column('path', sqlalchemy.Text, nullable=False)
     parent_folder_id = sqlalchemy.Column('parentfolderid', sqlalchemy.Text, nullable=False)
 
-    def __init__(self, folder_id, parent_folder_id, path):
+    def __init__(self, folder_id, path, parent_folder_id):
         self.folder_id = folder_id
         self.path = path
         self.parent_folder_id = parent_folder_id
