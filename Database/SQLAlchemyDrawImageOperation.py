@@ -105,7 +105,7 @@ class SQLAlchemyDrawImageOperation:
     def _init_db(self, db_url):
         print('DATABASE_URL=' + db_url)
 
-        self._engine = create_engine(db_url, pool_recycle=2*3600, echo=False)
+        self._engine = create_engine(db_url, pool_pre_ping=True, echo=False)
         self._session = sessionmaker(bind=self._engine)()
 
         self._create_tables()
