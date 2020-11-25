@@ -27,7 +27,7 @@ def after_request(resp):
 """
 
 
-@app.route("/all_sticker", methods=['GET'])
+@app.route("/sndata/all_sticker", methods=['GET'])
 def all_sticker():
     try:
         start = request.args.get('start')
@@ -62,7 +62,7 @@ def all_sticker():
     return jsonify(return_json)
 
 
-@app.route("/search", methods=['GET'])
+@app.route("/sndata/search", methods=['GET'])
 def search():
     try:
         query = request.args.get('q')
@@ -86,7 +86,7 @@ def search():
     return jsonify(return_json)
 
 
-@app.route("/change_sn", methods=['POST'])
+@app.route("/sndata/change_sn", methods=['POST'])
 def change_sn():
     if request.method == 'POST':
         change_request = request.json
