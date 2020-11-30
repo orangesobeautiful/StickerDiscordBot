@@ -79,7 +79,7 @@ class ImageProxyGoogleDriver(Base):
 
 
 class ImageSource(Base):
-    __tablename__ = 'imagesource'
+    __tablename__ = 'ImageSource'
 
     folder_id = Column('folderid', String, primary_key=True, nullable=False)
     path = Column('path', String, nullable=False)
@@ -96,7 +96,7 @@ class ImageSource(Base):
 
 
 class ImageWareHouse(Base):
-    __tablename__ = 'imagewarehouse'
+    __tablename__ = 'ImageWareHouse'
 
     image_id = Column('imageid', String, primary_key=True, nullable=False)
     path = Column('path', String, nullable=False)
