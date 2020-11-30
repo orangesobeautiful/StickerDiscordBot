@@ -15,26 +15,28 @@ print(db_url)
 engine = create_engine(db_url, echo=True)
 Base = declarative_base()
 
-exit()
-
 
 class Sticker(Base):
     __tablename__ = 'sticker'
 
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column('stickername', String, nullable=False)
-    img_url = Column('imgurl', String, nullable=False)
-    is_gif = Column('isgif', Boolean, nullable=False)
-    latest_update_time = Column('latestupdatetime', DateTime(timezone=True), default=func.now(), nullable=False)
+    id = sqlalchemy.Column('id', sqlalchemy.Integer, primary_key=True, nullable=False, autoincrement=True)
+    name = sqlalchemy.Column('stickername', sqlalchemy.Text, nullable=False)
+    img_url = sqlalchemy.Column('imgurl', sqlalchemy.Text, nullable=False)
+    local_save = sqlalchemy.Column('localsave', sqlalchemy.Text, nullable=False, default=func.now())
+    is_gif = sqlalchemy.Column('isgif', sqlalchemy.Boolean, nullable=False)
+    latest_update_time = sqlalchemy.Column('latestupdatetime', sqlalchemy.TIMESTAMP(timezone=True)
+                                           , default=func.now(), nullable=False)
 
-    def __init__(self, sticker_name, img_url, is_gif=False, latest_update_time=None):
+    def __init__(self, sticker_name, img_url, local_save='', is_gif=False, latest_update_time=None):
         self.name = sticker_name
         self.img_url = img_url
+        self.local_save = local_save
         self.is_gif = is_gif
         self.latest_update_time = latest_update_time
 
     def __repr__(self):
-        return "<Sticker('{}', '{}','{}', '{}', '{}')>".format(self.id, self.name, self.img_url, self.is_gif, self.latest_update_time)
+        return "<Sticker('{}', '{}','{}', '{}', '{}')>".format(
+            self.id, self.name, self.img_url, self.is_gif, self.latest_update_time)
 
     def items(self):
         return [self.id, self.name, self.img_url, self.is_gif, self.latest_update_time]
@@ -111,13 +113,12 @@ class ImageWareHouse(Base):
 
 
 class UpdatedFolder(Base):
-    __tablename__ = 'updatefolder'
+    __tablename__ = 'UpdatedFolder'
+    folder_id = sqlalchemy.Column('folderid', sqlalchemy.String(512), primary_key=True, nullable=False)
+    path = sqlalchemy.Column('path', sqlalchemy.Text, nullable=False)
+    parent_folder_id = sqlalchemy.Column('parentfolderid', sqlalchemy.Text, nullable=False)
 
-    folder_id = Column('folderid', String, primary_key=True, nullable=False)
-    path = Column('path', String, nullable=False)
-    parent_folder_id = Column('parentfolderid', String, nullable=False)
-
-    def __init__(self, folder_id, parent_folder_id, path):
+    def __init__(self, folder_id, path, parent_folder_id):
         self.folder_id = folder_id
         self.path = path
         self.parent_folder_id = parent_folder_id
@@ -137,7 +138,6 @@ if not os.path.isdir('backup'):
 
 backup_list = {
     'bot_info': BotInfo,
-    'imageproxygooogledriver': ImageProxyGoogleDriver,
     'image_source': ImageSource,
     'image_warehouse': ImageWareHouse,
     'sticker': Sticker,
