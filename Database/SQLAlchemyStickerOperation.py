@@ -12,6 +12,7 @@ import hashlib
 import datetime
 import csv
 from CommonFunction import StickerCommon
+import imghdr
 
 project_dir = StickerCommon.project_dir
 sticker_download_dir = StickerCommon.sticker_dir
@@ -20,6 +21,34 @@ _Base = declarative_base()
 
 _sticker_table_name = 'sticker'
 _bot_info_table_name = 'botinfo'
+
+
+def imghdr_patch():
+
+    def test_jpeg1(h, f):
+        """JPEG data in JFIF format"""
+        if b'JFIF' in h[:23]:
+            return 'jpeg'
+
+    JPEG_MARK = b'\xff\xd8\xff\xdb\x00C\x00\x08\x06\x06' \
+                b'\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f'
+
+    def test_jpeg2(h, f):
+        """JPEG with small header"""
+        if len(h) >= 32 and 67 == h[5] and h[:32] == JPEG_MARK:
+            return 'jpeg'
+
+    def test_jpeg3(h, f):
+        """JPEG data in JFIF or Exif format"""
+        if h[6:10] in (b'JFIF', b'Exif') or h[:2] == b'\xff\xd8':
+            return 'jpeg'
+
+    imghdr.tests.append(test_jpeg1)
+    imghdr.tests.append(test_jpeg2)
+    imghdr.tests.append(test_jpeg3)
+
+
+imghdr_patch()
 
 
 def trans_url(img_url: str):
@@ -50,27 +79,44 @@ def trans_url(img_url: str):
     return img_url
 
 
-def download_image(url: str, file_name: str):
+def download_image(url: str, filename: str):
     retry_times = 2
     success_download = False
+    complete_filename = ''
     for _ in range(retry_times):
-        with open(os.path.join(sticker_download_dir, file_name), 'wb') as download_file:
-            try:
-                response = requests.get(url, stream=True)
-            except Exception:
-                continue
-            if response.ok:
-                for block in response.iter_content(4 * 1024):
+        try:
+            response = requests.get(url, stream=True)
+        except Exception:
+            continue
+        if response.ok:
+            # detect image type
+            r_iter = response.iter_content(4 * 1024)
+            f_block = next(r_iter)
+            img_type = imghdr.what(_, f_block)
+            if img_type is None:
+                last_dot_index = url.rfind('.')
+                if last_dot_index >= 0:
+                    img_type = url[last_dot_index+1:]
+                else:
+                    success_download = False
+                    break
+            complete_filename = filename + '.' + img_type
+
+            # write image
+            with open(os.path.join(sticker_download_dir, complete_filename), 'wb') as download_file:
+                download_file.write(f_block)
+                for block in r_iter:
                     if not block:
                         break
                     download_file.write(block)
-                success_download = True
+            success_download = True
+
         if success_download:
             break
 
         time.sleep(3)
 
-    return success_download
+    return success_download, complete_filename
 
 
 class BotInfo(_Base):
@@ -259,7 +305,6 @@ class SQLAlchemyStickerOperation:
             local_save = sticker_data[2]
 
             if local_save == '':
-                to_download = True
                 s_count = int(self.get_sticker_download_count())
                 while True:
                     s_count += 1
@@ -267,9 +312,10 @@ class SQLAlchemyStickerOperation:
                     save_path = os.path.join(sticker_download_dir, hash_name)
                     if not os.path.isfile(save_path):
                         break
-                if download_image(img_url, save_path):
+                dl_success, complete_filename = download_image(img_url, save_path)
+                if dl_success:
                     self.set_sticker_download_count(s_count)
-                    local_save = hash_name
+                    local_save = complete_filename
                     self._session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
                 else:
                     download_failed_list.append((s_id, img_url))
@@ -316,9 +362,10 @@ class SQLAlchemyStickerOperation:
                                 save_path = os.path.join(sticker_download_dir, hash_name)
                                 if not os.path.isfile(save_path):
                                     break
-                            if download_image(af_url, save_path):
+                            dl_success, complete_filename = download_image(img_url, save_path)
+                            if dl_success:
                                 self.set_sticker_download_count(s_count)
-                                local_save = hash_name
+                                local_save = complete_filename
 
                         self._session.add(Sticker(sticker_name, af_url, local_save, is_gif))
                 else:
@@ -354,9 +401,10 @@ class SQLAlchemyStickerOperation:
                         save_path = os.path.join(sticker_download_dir, hash_name)
                         if not os.path.isfile(save_path):
                             break
-                    if download_image(af_url, save_path):
+                    dl_success, complete_filename = download_image(img_url, save_path)
+                    if dl_success:
                         self.set_sticker_download_count(s_count)
-                        local_save = hash_name
+                        local_save = complete_filename
                     dy_update_dict[Sticker.local_save] = local_save
 
             if 'gif' in edit_info:
@@ -408,3 +456,4 @@ class SQLAlchemyStickerOperation:
 if __name__ == '__main__':
     op = SQLAlchemyStickerOperation('mysql+pymysql://test:1234@localhost/our_bot', True)
     op.check_local_save()
+
