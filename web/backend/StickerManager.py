@@ -50,7 +50,13 @@ if image_return:
         if os.path.isfile(img_path):
             with open(img_path, 'rb') as img_file:
                 img_b = img_file.read()
-            return img_b, 200, {'content-type': 'image/jpeg',
+
+            last_dot_index = filename.rfind('.')
+            if last_dot_index >= 0:
+                img_type = filename[last_dot_index + 1:].lower()
+            else:
+                img_type = 'jpeg'
+            return img_b, 200, {'content-type': 'image/' + img_type,
                                 'Content-Disposition': 'inline;filename="' + filename + '";filename*=UTF-8\'\'' + filename}
         else:
             return '404', 404
