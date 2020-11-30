@@ -85,7 +85,8 @@ def download_image(url: str, filename: str):
     complete_filename = ''
     for _ in range(retry_times):
         try:
-            response = requests.get(url, stream=True)
+            response = requests.get(url, stream=True
+                                    , headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:76.0) Gecko/20100101 Firefox/76.0"})
         except Exception:
             continue
         if response.ok:
@@ -94,21 +95,22 @@ def download_image(url: str, filename: str):
             f_block = next(r_iter)
             img_type = imghdr.what(_, f_block)
             if img_type is None:
-                last_dot_index = url.rfind('.')
-                if last_dot_index >= 0:
-                    img_type = url[last_dot_index+1:]
-                else:
-                    success_download = False
-                    break
+                success_download = False
+                break
+
             complete_filename = filename + '.' + img_type
 
             # write image
             with open(os.path.join(sticker_download_dir, complete_filename), 'wb') as download_file:
                 download_file.write(f_block)
-                for block in r_iter:
-                    if not block:
-                        break
-                    download_file.write(block)
+                try:
+                    for block in r_iter:
+                        if not block:
+                            break
+                        download_file.write(block)
+                except Exception:
+                    continue
+
             success_download = True
 
         if success_download:
@@ -312,7 +314,7 @@ class SQLAlchemyStickerOperation:
                     save_path = os.path.join(sticker_download_dir, hash_name)
                     if not os.path.isfile(save_path):
                         break
-                dl_success, complete_filename = download_image(img_url, save_path)
+                dl_success, complete_filename = download_image(img_url, hash_name)
                 if dl_success:
                     self.set_sticker_download_count(s_count)
                     local_save = complete_filename
@@ -362,7 +364,7 @@ class SQLAlchemyStickerOperation:
                                 save_path = os.path.join(sticker_download_dir, hash_name)
                                 if not os.path.isfile(save_path):
                                     break
-                            dl_success, complete_filename = download_image(img_url, save_path)
+                            dl_success, complete_filename = download_image(img_url, hash_name)
                             if dl_success:
                                 self.set_sticker_download_count(s_count)
                                 local_save = complete_filename
@@ -401,7 +403,7 @@ class SQLAlchemyStickerOperation:
                         save_path = os.path.join(sticker_download_dir, hash_name)
                         if not os.path.isfile(save_path):
                             break
-                    dl_success, complete_filename = download_image(img_url, save_path)
+                    dl_success, complete_filename = download_image(img_url, hash_name)
                     if dl_success:
                         self.set_sticker_download_count(s_count)
                         local_save = complete_filename
