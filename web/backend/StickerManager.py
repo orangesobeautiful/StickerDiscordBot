@@ -3,16 +3,33 @@ import sys
 import argparse
 import flask
 import json
-from flask import Flask, request, abort, render_template, jsonify
+from flask import Flask, request, abort, render_template, jsonify, send_from_directory
 from flask_sslify import SSLify
 from flask_cors import CORS
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
+from CommonFunction import StickerCommon
 
-db_url = os.environ['DATABASE_URL']
-db_operation = SQLAlchemyStickerOperation(db_url)
+db_url = ''
+image_return = False
+save_image_local = False
+sticker_download_dir = StickerCommon.sticker_dir
+
+
+def _read_setting():
+    global db_url, image_return, save_image_local
+    _, db_url, _, _, save_image_local, image_return = StickerCommon.read_setting()
+    if db_url == '' or save_image_local is None or image_return is None:
+        return False
+    return True
+
+
+if not _read_setting():
+    raise OSError('讀取設定失敗，需要在環境變數或設定檔(setting.ini)中提供完整設定值')
+db_operation = SQLAlchemyStickerOperation(db_url, save_image_local)
 app = Flask(__name__)
 app.config.from_object(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
+
 # sslify = SSLify(app, skips=['h'])
 # SECURE_REDIRECT_EXEMPT = ['/']
 
@@ -25,6 +42,18 @@ def after_request(resp):
     resp.headers['Access-Control-Allow-Headers'] = 'content-type,token'
     return resp
 """
+
+if image_return:
+    @app.route("/sticker-image/<path:filename>", methods=['GET'])
+    def sticker_image_return(filename):
+        img_path = os.path.join(sticker_download_dir, filename)
+        if os.path.isfile(img_path):
+            with open(img_path, 'rb') as img_file:
+                img_b = img_file.read()
+            return img_b, 200, {'content-type': 'image/jpeg',
+                                'Content-Disposition': 'inline;filename="' + filename + '";filename*=UTF-8\'\'' + filename}
+        else:
+            return '404', 404
 
 
 @app.route("/sndata/all_sticker", methods=['GET'])

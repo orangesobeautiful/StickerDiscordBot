@@ -3,10 +3,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker
+import requests
 from datetime import timezone
 import math
+import time
+import os
+import hashlib
 import datetime
 import csv
+from CommonFunction import StickerCommon
+
+project_dir = StickerCommon.project_dir
+sticker_download_dir = StickerCommon.sticker_dir
 
 _Base = declarative_base()
 
@@ -42,6 +50,29 @@ def trans_url(img_url: str):
     return img_url
 
 
+def download_image(url: str, file_name: str):
+    retry_times = 2
+    success_download = False
+    for _ in range(retry_times):
+        with open(os.path.join(sticker_download_dir, file_name), 'wb') as download_file:
+            try:
+                response = requests.get(url, stream=True)
+            except Exception:
+                continue
+            if response.ok:
+                for block in response.iter_content(4 * 1024):
+                    if not block:
+                        break
+                    download_file.write(block)
+                success_download = True
+        if success_download:
+            break
+
+        time.sleep(3)
+
+    return success_download
+
+
 class BotInfo(_Base):
     __tablename__ = _bot_info_table_name
 
@@ -65,13 +96,15 @@ class Sticker(_Base):
     id = sqlalchemy.Column('id', sqlalchemy.Integer, primary_key=True, nullable=False, autoincrement=True)
     name = sqlalchemy.Column('stickername', sqlalchemy.Text, nullable=False)
     img_url = sqlalchemy.Column('imgurl', sqlalchemy.Text, nullable=False)
+    local_save = sqlalchemy.Column('localsave', sqlalchemy.Text, nullable=False, default=func.now())
     is_gif = sqlalchemy.Column('isgif', sqlalchemy.Boolean, nullable=False)
     latest_update_time = sqlalchemy.Column('latestupdatetime', sqlalchemy.TIMESTAMP(timezone=True)
                                            , default=func.now(), nullable=False)
 
-    def __init__(self, sticker_name, img_url, is_gif=False, latest_update_time=None):
+    def __init__(self, sticker_name, img_url, local_save='', is_gif=False, latest_update_time=None):
         self.name = sticker_name
         self.img_url = img_url
+        self.local_save = local_save
         self.is_gif = is_gif
         self.latest_update_time = latest_update_time
 
@@ -88,8 +121,9 @@ class SQLAlchemyStickerOperation:
     _session = None
     _engine = None
 
-    def __init__(self, db_url: str):
+    def __init__(self, db_url: str, save_image_local: bool):
         self._db_url = db_url
+        self.save_image_local = save_image_local
         self._init_db(db_url)
 
     def _init_db(self, db_url):
@@ -123,6 +157,17 @@ class SQLAlchemyStickerOperation:
 
         self._session.commit()
 
+    def get_sticker_download_count(self):
+        query_data = self._session.query(BotInfo.value).filter(BotInfo.name == 'StickerDownloadCount').first()
+        if query_data is None:
+            self._session.add(BotInfo('StickerDownloadCount', 0))
+            return 0
+        return int(query_data[0])
+
+    def set_sticker_download_count(self, count: int):
+        self._session.query(BotInfo).filter(BotInfo.name == 'StickerDownloadCount').update({BotInfo.value: str(count)})
+        self._session.commit()
+
     def get_all_sn_list(self):
         query_data = self._session.query(Sticker.name).distinct().all()
         res_list = list()
@@ -133,7 +178,7 @@ class SQLAlchemyStickerOperation:
 
     def get_sticker_random(self, sticker_name: str):
         self._session.commit()
-        query_data = self._session.query(Sticker.img_url, Sticker.is_gif).\
+        query_data = self._session.query(Sticker.img_url, Sticker.local_save, Sticker.is_gif).\
             filter(Sticker.name == sticker_name).order_by(func.random()).first()
 
         return query_data
@@ -205,10 +250,45 @@ class SQLAlchemyStickerOperation:
 
         return orgn_url == img_url, sticker_name
 
+    def check_local_save(self):
+        query_data = self._session.query(Sticker.id, Sticker.img_url, Sticker.local_save).all()
+        download_failed_list = list()
+        for sticker_data in query_data:
+            s_id = sticker_data[0]
+            img_url = sticker_data[1]
+            local_save = sticker_data[2]
+
+            if local_save == '':
+                to_download = True
+                s_count = int(self.get_sticker_download_count())
+                while True:
+                    s_count += 1
+                    hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
+                    save_path = os.path.join(sticker_download_dir, hash_name)
+                    if not os.path.isfile(save_path):
+                        break
+                if download_image(img_url, save_path):
+                    self.set_sticker_download_count(s_count)
+                    local_save = hash_name
+                    self._session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
+                else:
+                    download_failed_list.append((s_id, img_url))
+            else:
+                save_path = os.path.join(sticker_download_dir, local_save)
+                if not os.path.isfile(save_path):
+                    if not download_image(img_url, save_path):
+                        download_failed_list.append((s_id, img_url))
+                        self._session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
+
+        self._session.commit()
+
+        return download_failed_list
+
     def add_sticker(self, add_list: list):
         """
         err 1: not support url
         err 2: has equal sticker
+        err 3: download failed
         """
         no_add_list = list()
         for add_info in add_list:
@@ -227,7 +307,20 @@ class SQLAlchemyStickerOperation:
                     if self.is_sticker_exist(sticker_name, img_url):
                         no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 2})
                     else:
-                        self._session.add(Sticker(sticker_name, af_url, is_gif))
+                        local_save = ''
+                        if self.save_image_local:
+                            s_count = int(self.get_sticker_download_count())
+                            while True:
+                                s_count += 1
+                                hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
+                                save_path = os.path.join(sticker_download_dir, hash_name)
+                                if not os.path.isfile(save_path):
+                                    break
+                            if download_image(af_url, save_path):
+                                self.set_sticker_download_count(s_count)
+                                local_save = hash_name
+
+                        self._session.add(Sticker(sticker_name, af_url, local_save, is_gif))
                 else:
                     no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 1})
             else:
@@ -251,6 +344,21 @@ class SQLAlchemyStickerOperation:
             if 'url' in edit_info:
                 img_url: str = edit_info['url']
                 dy_update_dict[Sticker.img_url] = img_url
+
+                local_save = ''
+                if self.save_image_local:
+                    s_count = int(self.get_sticker_download_count())
+                    while True:
+                        s_count += 1
+                        hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
+                        save_path = os.path.join(sticker_download_dir, hash_name)
+                        if not os.path.isfile(save_path):
+                            break
+                    if download_image(af_url, save_path):
+                        self.set_sticker_download_count(s_count)
+                        local_save = hash_name
+                    dy_update_dict[Sticker.local_save] = local_save
+
             if 'gif' in edit_info:
                 is_gif = edit_info['gif']
                 if type(is_gif) == str:
@@ -298,4 +406,5 @@ class SQLAlchemyStickerOperation:
 
 
 if __name__ == '__main__':
-    op = SQLAlchemyStickerOperation('mysql+pymysql://test:1234@localhost/our_bot')
+    op = SQLAlchemyStickerOperation('mysql+pymysql://test:1234@localhost/our_bot', True)
+    op.check_local_save()

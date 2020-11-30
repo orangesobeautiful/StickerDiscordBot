@@ -1,9 +1,7 @@
 from Database.SQLAlchemyDrawImageOperation import SQLAlchemyDrawImageOperation
 from GoogleDriverAPI import GDBaseOp
 import os
-import operator
 import pathlib
-import time
 
 
 def cmp(a, b):
@@ -12,10 +10,10 @@ def cmp(a, b):
 
 class DrawImage(GDBaseOp.GDBaseOp):
 
-    def __init__(self):
+    def __init__(self, db_url: str):
         self.folder_image_num = 200
         super(DrawImage, self).__init__()
-        self.db_url = os.environ['DATABASE_URL']
+        self.db_url = db_url
         self.db_op = SQLAlchemyDrawImageOperation(self.db_url)
 
     def add_image_source(self):

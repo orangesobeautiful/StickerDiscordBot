@@ -2,6 +2,8 @@
 __pycache__
 /dist
 /pyvenv
+/sticker-image
+setting.ini
 startBot.bat
 OurDiscordBot.txt
 node_modules

@@ -1,14 +1,12 @@
 import discord
-import os
 from discord.ext import commands
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
 from GoogleDriverAPI.DrawImage import DrawImage
 import pytube
 from pytube import YouTube
 from apscheduler.schedulers.background import BackgroundScheduler
-import random
-import time
 import pytz
+from CommonFunction import StickerCommon
 
 
 # 頭像提供 https://www.thiswaifudoesnotexist.net/
@@ -24,7 +22,6 @@ class StickerBot:
     scheduler = None
     sticker_set = set()
     show_num_max = 3
-    my_web_url = os.environ['WebURL']
     # /img-proxy/google-driver
     # image_proxy_url = os.environ['ImgProxyURL']
 
@@ -38,10 +35,24 @@ class StickerBot:
     current_voice_source = None
 
     def __init__(self):
-        self.token = os.environ['bot_token']
-        self.db_url = os.environ['DATABASE_URL']
+        self.project_dir = StickerCommon.project_dir
+
+        if not self._read_setting():
+            raise OSError('讀取設定失敗，需要在環境變數或設定檔(setting.ini)中提供完整設定值')
         # self.db_url = "postgres://postgres:@127.0.0.1:5432/postgres"
         self._init_app()
+
+    def _read_setting(self):
+        # 讀取設定
+        # WebURL 可為空值, 其餘變數不可為空
+        self.token, self.db_url, self.my_web_url\
+            , self.sticker_url, self.save_image_local, _ = StickerCommon.read_setting()
+        if self.token == '' or self.db_url == '' or self.save_image_local is None:
+            return False
+        if self.save_image_local and self.sticker_url == '':
+            return False
+
+        return True
 
     def start(self):
         self.scheduler.start()
@@ -51,7 +62,7 @@ class StickerBot:
         print('discord.opus=' + str(self.load_opus_lib(self.OPUS_LIBS)))
         self._init_db()
         self.scheduler = BackgroundScheduler()
-        self.draw_image = DrawImage()
+        self.draw_image = DrawImage(self.db_url)
         self.bot_prefix = self.db_operation.get_bot_prefix()
         self.scheduler.add_job(self.all_routine_job, 'cron', hour=5, minute=0, timezone=pytz.timezone('Asia/Taipei'))
         if self.bot_prefix is None:
@@ -74,15 +85,23 @@ class StickerBot:
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
     def _init_db(self):
-        self.db_operation = SQLAlchemyStickerOperation(self.db_url)
+        self.db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local)
         self.bot_prefix = self.db_operation.get_bot_prefix()
 
     def all_routine_job(self):
+        self.check_local_save()
         self.update_image_warehouse()
+
+    def check_local_save(self):
+        if self.save_image_local:
+            print('check local image save')
+            self.db_operation.check_local_save()
+            print('finished check local image save')
 
     def update_image_warehouse(self):
         print('update image warehouse')
         self.draw_image.update_images()
+        print('finished update image warehouse')
 
     """
     def write_sticker_list_file(self):
@@ -112,7 +131,11 @@ class StickerBot:
             sticker_res = self.db_operation.get_sticker_random(msg_content)
             if sticker_res is not None:
                 img_url = sticker_res[0]
-                is_gif = sticker_res[1]
+                local_save = sticker_res[1]
+                is_gif = sticker_res[2]
+
+                if self.save_image_local and local_save != '':
+                    img_url = self.sticker_url + 'sticker-image/' + local_save
 
                 """
                 #old method
@@ -128,12 +151,15 @@ class StickerBot:
 
         @self.bot.command()
         async def info(ctx):
-            embed = discord.Embed(title="貼圖小幫手", description="在樓下幫你支援xxx.jpg\n"
-                                                             "使用$help查看指令說明\n"
-                                                             "現在支援GoogleDriver共享網址和GIF\n"
-                                                             "輕鬆管理貼圖" + self.my_web_url + "\n" +
-                                                             "網頁版使用教學" + self.my_web_url + "/sticker-web-tutorial"
-                                  , color=0xeee657)
+            info_str = "在樓下幫你支援xxx.jpg\n"\
+                       "使用$help查看指令說明\n"\
+                       "現在支援GoogleDriver共享網址和GIF\n"\
+
+            if self.my_web_url != '':
+                info_str += "輕鬆管理貼圖" + self.my_web_url + "\n" + \
+                "網頁版使用教學" + self.my_web_url + "/sticker-web-tutorial"
+
+            embed = discord.Embed(title="貼圖小幫手", description=info_str, color=0xeee657)
 
             # 显示机器人所服务的数量。
             # embed.add_field(name="分身數量", value=f"{len(self.bot.guilds)}")
