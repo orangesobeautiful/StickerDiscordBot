@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker
+from contextlib import contextmanager
 import math
 
 _source_table_name = 'ImageSource'
@@ -106,9 +107,20 @@ class SQLAlchemyDrawImageOperation:
         print('DATABASE_URL=' + db_url)
 
         self._engine = create_engine(db_url, pool_pre_ping=True, echo=False)
-        self._session = sessionmaker(bind=self._engine)()
 
         self._create_tables()
+
+    @contextmanager
+    def _session_scope(self):
+        """Provide a transactional scope around a series of operations."""
+        session = sessionmaker(bind=self._engine)()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def _create_tables(self):
         # if table is not exist than create
@@ -121,12 +133,12 @@ class SQLAlchemyDrawImageOperation:
         if not self._engine.dialect.has_table(self._engine, _updated_folder_table_name):
             UpdatedFolder.metadata.create_all(self._engine)
 
-    # none test
     def add_image_source(self, folder_id, path):
         if folder_id and path:
             if not self.source_exist(folder_id):
-                self._session.add(ImageSource(folder_id, path))
-                self._session.commit()
+                with self._session_scope() as session:
+                    session.add(ImageSource(folder_id, path))
+                    session.commit()
             else:
                 print('{0:s} 已經存在'.format(path))
                 return False
@@ -134,33 +146,33 @@ class SQLAlchemyDrawImageOperation:
         else:
             return False
 
-    # none test
     def all_image_source(self):
-        query_data = self._session.query(ImageSource.folder_id, ImageSource.path).order_by(ImageSource.path).all()
+        with self._session_scope() as session:
+            query_data = session.query(ImageSource.folder_id, ImageSource.path).order_by(ImageSource.path).all()
 
         return query_data
 
-    # none test
     def source_exist(self, folder_id):
-        query_data = self._session.query(ImageSource.path).filter(ImageSource.folder_id == folder_id).first()
+        with self._session_scope() as session:
+            query_data = session.query(ImageSource.path).filter(ImageSource.folder_id == folder_id).first()
 
         return query_data is not None
 
-    # none test
     def delete_source(self, folder_id):
         if folder_id and self.source_exist(folder_id):
-            fetch_num = self._session.query(ImageSource).filter(ImageSource.folder_id == folder_id).delete()
-            self._session.commit()
+            with self._session_scope() as session:
+                fetch_num = session.query(ImageSource).filter(ImageSource.folder_id == folder_id).delete()
+                session.commit()
             return fetch_num
         else:
             raise 'ID:{folder_id} is not exist'.format(folder_id)
 
-    # none test
     def add_updated_folder(self, folder_id, path, parent_folder_id):
         if folder_id and path:
             if not self.source_exist(folder_id):
-                self._session.add(UpdatedFolder(folder_id, path, parent_folder_id))
-                self._session.commit()
+                with self._session_scope() as session:
+                    session.add(UpdatedFolder(folder_id, path, parent_folder_id))
+                    session.commit()
             else:
                 print('{0:s} 已經存在'.format(path))
                 return False
@@ -168,52 +180,56 @@ class SQLAlchemyDrawImageOperation:
         else:
             return False
 
-    # none test
     def all_updated_folders(self, parent_folder=None):
         if parent_folder:
-            query_data = self._session.query(UpdatedFolder.folder_id, UpdatedFolder.path, UpdatedFolder.parent_folder_id).\
-                filter(UpdatedFolder.parent_folder_id == parent_folder).order_by(UpdatedFolder.folder_id).all()
+            with self._session_scope() as session:
+                query_data = session.query(UpdatedFolder.folder_id, UpdatedFolder.path,
+                                           UpdatedFolder.parent_folder_id).filter(
+                    UpdatedFolder.parent_folder_id == parent_folder).order_by(UpdatedFolder.folder_id).all()
+
         else:
-            query_data = self._session.query(UpdatedFolder.folder_id, UpdatedFolder.path, UpdatedFolder.parent_folder_id).\
-                order_by(UpdatedFolder.folder_id).all()
+            with self._session_scope() as session:
+                query_data = session.query(UpdatedFolder.folder_id, UpdatedFolder.path,
+                                           UpdatedFolder.parent_folder_id).order_by(UpdatedFolder.folder_id).all()
         return query_data
 
-    # none test
     def delete_updated_folders(self):
-        fetch_num = self._session.query(UpdatedFolder).delete()
-        self._session.commit()
+        with self._session_scope() as session:
+            fetch_num = session.query(UpdatedFolder).delete()
+            session.commit()
 
         return fetch_num
 
-    # none test
     def add_images(self, image_id, path):
         if image_id and path:
-            self._session.add(ImageWareHouse(image_id, path))
-            self._session.commit()
+            with self._session_scope() as session:
+                session.add(ImageWareHouse(image_id, path))
+                session.commit()
             return True
         else:
             return False
 
-    # none test
     def all_images(self):
-        query_data = self._session.query(ImageWareHouse.image_id, ImageWareHouse.path).order_by(ImageWareHouse.path).all()
+        with self._session_scope() as session:
+            query_data = session.query(ImageWareHouse.image_id, ImageWareHouse.path).order_by(ImageWareHouse.path).all()
 
         return query_data
 
-    # none test
     def delete_all_image(self):
-        fetch_num = self._session.query(ImageWareHouse).delete()
-        self._session.commit()
+        with self._session_scope() as session:
+            fetch_num = session.query(ImageWareHouse).delete()
+            session.commit()
         return fetch_num
 
-    # none test
     def get_rand_image(self):
-        query_data = self._session.query(ImageWareHouse.image_id).order_by(func.random()).first()
+        with self._session_scope() as session:
+            query_data = session.query(ImageWareHouse.image_id).order_by(func.random()).first()
         return query_data
 
 
 if __name__ == '__main__':
     testDB = SQLAlchemyDrawImageOperation('mysql+pymysql://test:1234@localhost/our_bot')
+    print(len(testDB.all_images()))
     exit()
 
 

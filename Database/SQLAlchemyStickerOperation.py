@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import sessionmaker
+from contextlib import contextmanager
 import requests
 from datetime import timezone
 import math
@@ -178,10 +179,22 @@ class SQLAlchemyStickerOperation:
         print('DATABASE_URL=' + db_url)
 
         self._engine = create_engine(db_url, pool_pre_ping=True, echo=False)
-        self._session = sessionmaker(bind=self._engine)()
+        # self._session = sessionmaker(bind=self._engine)()
         # self._session.autoflush=True
 
         self._create_tables()
+
+    @contextmanager
+    def _session_scope(self):
+        """Provide a transactional scope around a series of operations."""
+        session = sessionmaker(bind=self._engine)()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def _create_tables(self):
         # if table is not exist than create
@@ -192,32 +205,36 @@ class SQLAlchemyStickerOperation:
             BotInfo.metadata.create_all(self._engine)
 
     def get_bot_prefix(self):
-        query_data = self._session.query(BotInfo.value).filter(BotInfo.name == 'BotPrefix').first()
+        with self._session_scope() as session:
+            query_data = session.query(BotInfo.value).filter(BotInfo.name == 'BotPrefix').first()
         if query_data is None:
             return None
         return query_data[0]
 
     def set_bot_prefix(self, prefix: str):
-        if self.get_bot_prefix() is None:
-            self._session.add(BotInfo('BotPrefix', prefix))
-        else:
-            self._session.query(BotInfo).filter(BotInfo.name == 'BotPrefix').update({BotInfo.value: prefix})
-
-        self._session.commit()
+        with self._session_scope() as session:
+            if self.get_bot_prefix() is None:
+                session.add(BotInfo('BotPrefix', prefix))
+            else:
+                session.query(BotInfo).filter(BotInfo.name == 'BotPrefix').update({BotInfo.value: prefix})
+            session.commit()
 
     def get_sticker_download_count(self):
-        query_data = self._session.query(BotInfo.value).filter(BotInfo.name == 'StickerDownloadCount').first()
-        if query_data is None:
-            self._session.add(BotInfo('StickerDownloadCount', 0))
-            return 0
+        with self._session_scope() as session:
+            query_data = session.query(BotInfo.value).filter(BotInfo.name == 'StickerDownloadCount').first()
+            if query_data is None:
+                session.add(BotInfo('StickerDownloadCount', 0))
+                return 0
         return int(query_data[0])
 
     def set_sticker_download_count(self, count: int):
-        self._session.query(BotInfo).filter(BotInfo.name == 'StickerDownloadCount').update({BotInfo.value: str(count)})
-        self._session.commit()
+        with self._session_scope() as session:
+            session.query(BotInfo).filter(BotInfo.name == 'StickerDownloadCount').update({BotInfo.value: str(count)})
+            session.commit()
 
     def get_all_sn_list(self):
-        query_data = self._session.query(Sticker.name).distinct().all()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.name).distinct().all()
         res_list = list()
         for tup_ele in query_data:
             res_list.append(tup_ele[0])
@@ -225,25 +242,26 @@ class SQLAlchemyStickerOperation:
         return res_list
 
     def get_sticker_random(self, sticker_name: str):
-        self._session.commit()
-        query_data = self._session.query(Sticker.img_url, Sticker.local_save, Sticker.is_gif).\
-            filter(Sticker.name == sticker_name).order_by(func.random()).first()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.img_url, Sticker.local_save, Sticker.is_gif).filter(
+                Sticker.name == sticker_name).order_by(func.random()).first()
 
         return query_data
 
     def get_sticker_all(self, sticker_name: str):
-        query_data = self._session.query(Sticker.id, Sticker.img_url, Sticker.is_gif).\
-            filter(Sticker.name == sticker_name).order_by(Sticker.id).all()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.id, Sticker.img_url, Sticker.is_gif).filter(
+                Sticker.name == sticker_name).order_by(Sticker.id).all()
         return query_data
 
     # 給網頁版查詢資料使用 直接回傳json
     def get_sticker_group_by_name(self, start: int, num: int = 10, sort_by: str = 'name'):
-        self._session.commit()
         if sort_by == 'name':
             sort_col = Sticker.name
 
-        sticker_name_list = self._session.query(Sticker.name)\
-            .group_by(Sticker.name).order_by(sort_col).limit(num).offset(start).all()
+        with self._session_scope() as session:
+            sticker_name_list = session.query(Sticker.name).group_by(Sticker.name).order_by(sort_col).limit(num).offset(
+                start).all()
 
         return_list = list()
         for sticker_name in sticker_name_list:
@@ -257,16 +275,16 @@ class SQLAlchemyStickerOperation:
 
             return_list.append([sticker_name[0], sticker_dict_list])
 
-
-
         # use mariadb >= 10.5 func
-        # query_data = self._session.query(Sticker.name, func.json_array_agg(func.json_object('id', Sticker.id,
+        # with self._session_scope() as session:
+        #   query_data = session.query(Sticker.name, func.json_array_agg(func.json_object('id', Sticker.id,
         #                                                                                'url', Sticker.img_url,
         #                                                                                'gif', Sticker.is_gif))). \
         #    group_by(Sticker.name).order_by(sort_col).limit(num).offset(start).all()
 
         # use postgresql func
-        # query_data = self._session.query(Sticker.name, func.json_agg(func.json_build_object('id', Sticker.id,
+        # with self._session_scope() as session:
+        #   query_data = session.query(Sticker.name, func.json_agg(func.json_build_object('id', Sticker.id,
         #                                                                                'url', Sticker.img_url,
         #                                                                                'gif', Sticker.is_gif))). \
         #    group_by(Sticker.name).order_by(sort_col).limit(num).offset(start).all()
@@ -281,121 +299,35 @@ class SQLAlchemyStickerOperation:
 
     # 查詢同名貼圖是否存在
     def is_sticker_name_exist(self, sticker_name: str):
-        query_data = self._session.query(Sticker.id).filter(Sticker.name == sticker_name).first()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.id).filter(Sticker.name == sticker_name).first()
         return query_data is not None
 
     # 查詢同名同網址的貼圖是否存在
     def is_sticker_exist(self, sticker_name: str, img_url: str):
-        query_data = self._session.query(Sticker.id).\
-            filter(Sticker.name == sticker_name, Sticker.img_url == img_url).first()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.id).filter(Sticker.name == sticker_name, Sticker.img_url == img_url).first()
         return query_data is not None
 
     # 判斷貼圖網址是否一樣(根據ID)
     def is_sticker_equal(self, sticker_id: str, img_url: str):
-        query_data = self._session.query(Sticker.name, Sticker.img_url).filter(Sticker.id == sticker_id).first()
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.name, Sticker.img_url).filter(Sticker.id == sticker_id).first()
         sticker_name = query_data[0]
         orgn_url = query_data[1]
 
         return orgn_url == img_url, sticker_name
 
     def check_local_save(self):
-        query_data = self._session.query(Sticker.id, Sticker.img_url, Sticker.local_save).all()
-        download_failed_list = list()
-        for sticker_data in query_data:
-            s_id = sticker_data[0]
-            img_url = sticker_data[1]
-            local_save = sticker_data[2]
+        with self._session_scope() as session:
+            query_data = session.query(Sticker.id, Sticker.img_url, Sticker.local_save).all()
+            download_failed_list = list()
+            for sticker_data in query_data:
+                s_id = sticker_data[0]
+                img_url = sticker_data[1]
+                local_save = sticker_data[2]
 
-            if local_save == '':
-                s_count = int(self.get_sticker_download_count())
-                while True:
-                    s_count += 1
-                    hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
-                    save_path = os.path.join(sticker_download_dir, hash_name)
-                    if not os.path.isfile(save_path):
-                        break
-                dl_success, complete_filename = download_image(img_url, hash_name)
-                if dl_success:
-                    self.set_sticker_download_count(s_count)
-                    local_save = complete_filename
-                    self._session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
-                else:
-                    download_failed_list.append((s_id, img_url))
-            else:
-                save_path = os.path.join(sticker_download_dir, local_save)
-                if not os.path.isfile(save_path):
-                    if not download_image(img_url, save_path):
-                        download_failed_list.append((s_id, img_url))
-                        self._session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
-
-        self._session.commit()
-
-        return download_failed_list
-
-    def add_sticker(self, add_list: list):
-        """
-        err 1: not support url
-        err 2: has equal sticker
-        err 3: download failed
-        """
-        no_add_list = list()
-        for add_info in add_list:
-            sticker_name: str = add_info['sn']
-            img_url: str = add_info['url']
-            is_gif = add_info['is_gif']
-            if type(is_gif) == str:
-                if is_gif.lower() == 'false':
-                    is_gif = False
-                elif is_gif.lower() == 'true':
-                    is_gif = True
-
-            if img_url[:4] == 'http':
-                af_url = trans_url(img_url)
-                if af_url:
-                    if self.is_sticker_exist(sticker_name, img_url):
-                        no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 2})
-                    else:
-                        local_save = ''
-                        if self.save_image_local:
-                            s_count = int(self.get_sticker_download_count())
-                            while True:
-                                s_count += 1
-                                hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
-                                save_path = os.path.join(sticker_download_dir, hash_name)
-                                if not os.path.isfile(save_path):
-                                    break
-                            dl_success, complete_filename = download_image(img_url, hash_name)
-                            if dl_success:
-                                self.set_sticker_download_count(s_count)
-                                local_save = complete_filename
-
-                        self._session.add(Sticker(sticker_name, af_url, local_save, is_gif))
-                else:
-                    no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 1})
-            else:
-                no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 1})
-
-        self._session.commit()
-        return no_add_list
-
-    def edit_sticker(self, edit_list: list):
-        """
-        err 1: not support url
-        err 2: url no change
-        err 3: has equal sticker
-        err 4: error args
-        """
-        no_change_list = list()
-        for edit_info in edit_list:
-            dy_update_dict = dict()
-            sticker_id: str = str(edit_info['id'])
-            img_url: str = ''
-            if 'url' in edit_info:
-                img_url: str = edit_info['url']
-                dy_update_dict[Sticker.img_url] = img_url
-
-                local_save = ''
-                if self.save_image_local:
+                if local_save == '':
                     s_count = int(self.get_sticker_download_count())
                     while True:
                         s_count += 1
@@ -407,51 +339,143 @@ class SQLAlchemyStickerOperation:
                     if dl_success:
                         self.set_sticker_download_count(s_count)
                         local_save = complete_filename
-                    dy_update_dict[Sticker.local_save] = local_save
+                        session.query(Sticker).filter(Sticker.id == s_id).update({Sticker.local_save: local_save})
+                    else:
+                        download_failed_list.append((s_id, img_url))
+                else:
+                    save_path = os.path.join(sticker_download_dir, local_save)
+                    if not os.path.isfile(save_path):
+                        if not download_image(img_url, save_path):
+                            download_failed_list.append((s_id, img_url))
+                            session.query(Sticker).filter(Sticker.id == s_id).update(
+                                {Sticker.local_save: local_save})
 
-            if 'gif' in edit_info:
-                is_gif = edit_info['gif']
+            session.commit()
+
+        return download_failed_list
+
+    def add_sticker(self, add_list: list):
+        """
+        err 1: not support url
+        err 2: has equal sticker
+        err 3: download failed
+        """
+        with self._session_scope() as session:
+            no_add_list = list()
+            for add_info in add_list:
+                sticker_name: str = add_info['sn']
+                img_url: str = add_info['url']
+                is_gif = add_info['is_gif']
                 if type(is_gif) == str:
                     if is_gif.lower() == 'false':
                         is_gif = False
                     elif is_gif.lower() == 'true':
                         is_gif = True
-                dy_update_dict[Sticker.is_gif] = is_gif
 
-            if len(dy_update_dict) == 0:
-                no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 4})
-            else:
-                if 'url' in edit_info:
+                if img_url[:4] == 'http':
                     af_url = trans_url(img_url)
                     if af_url:
-                        equ_img, sticker_name = self.is_sticker_equal(sticker_id, img_url)
-                        # print(equ_img, sticker_name)
-                        if equ_img:
-                            no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 2})
-                            continue
+                        if self.is_sticker_exist(sticker_name, img_url):
+                            no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 2})
                         else:
-                            if self.is_sticker_exist(sticker_name, img_url):
-                                no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 3})
-                                continue
+                            local_save = ''
+                            if self.save_image_local:
+                                s_count = int(self.get_sticker_download_count())
+                                while True:
+                                    s_count += 1
+                                    hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
+                                    save_path = os.path.join(sticker_download_dir, hash_name)
+                                    if not os.path.isfile(save_path):
+                                        break
+                                dl_success, complete_filename = download_image(img_url, hash_name)
+                                if dl_success:
+                                    self.set_sticker_download_count(s_count)
+                                    local_save = complete_filename
+
+                            session.add(Sticker(sticker_name, af_url, local_save, is_gif))
                     else:
-                        no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 1})
-                        continue
+                        no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 1})
+                else:
+                    no_add_list.append({'sn': sticker_name, 'url': img_url, 'err': 1})
 
-                self._session.query(Sticker).filter(Sticker.id == sticker_id).update(dy_update_dict)
+            session.commit()
+        return no_add_list
 
-        self._session.commit()
+    def edit_sticker(self, edit_list: list):
+        """
+        err 1: not support url
+        err 2: url no change
+        err 3: has equal sticker
+        err 4: error args
+        """
+        with self._session_scope() as session:
+            no_change_list = list()
+            for edit_info in edit_list:
+                dy_update_dict = dict()
+                sticker_id: str = str(edit_info['id'])
+                img_url: str = ''
+                if 'url' in edit_info:
+                    img_url: str = edit_info['url']
+                    dy_update_dict[Sticker.img_url] = img_url
+
+                    local_save = ''
+                    if self.save_image_local:
+                        s_count = int(self.get_sticker_download_count())
+                        while True:
+                            s_count += 1
+                            hash_name = hashlib.md5(str(s_count).encode(encoding='utf-8')).hexdigest()
+                            save_path = os.path.join(sticker_download_dir, hash_name)
+                            if not os.path.isfile(save_path):
+                                break
+                        dl_success, complete_filename = download_image(img_url, hash_name)
+                        if dl_success:
+                            self.set_sticker_download_count(s_count)
+                            local_save = complete_filename
+                        dy_update_dict[Sticker.local_save] = local_save
+
+                if 'gif' in edit_info:
+                    is_gif = edit_info['gif']
+                    if type(is_gif) == str:
+                        if is_gif.lower() == 'false':
+                            is_gif = False
+                        elif is_gif.lower() == 'true':
+                            is_gif = True
+                    dy_update_dict[Sticker.is_gif] = is_gif
+
+                if len(dy_update_dict) == 0:
+                    no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 4})
+                else:
+                    if 'url' in edit_info:
+                        af_url = trans_url(img_url)
+                        if af_url:
+                            equ_img, sticker_name = self.is_sticker_equal(sticker_id, img_url)
+                            # print(equ_img, sticker_name)
+                            if equ_img:
+                                no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 2})
+                                continue
+                            else:
+                                if self.is_sticker_exist(sticker_name, img_url):
+                                    no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 3})
+                                    continue
+                        else:
+                            no_change_list.append({'id': sticker_id, 'img_url': img_url, 'err': 1})
+                            continue
+
+                    session.query(Sticker).filter(Sticker.id == sticker_id).update(dy_update_dict)
+
+            session.commit()
         return no_change_list
 
     def delete_sticker(self, id_list: list):
-        fetch_num = self._session.query(Sticker).filter(Sticker.id.in_(id_list)).delete(synchronize_session=False)
-        self._session.commit()
-
+        with self._session_scope() as session:
+            fetch_num = session.query(Sticker).filter(Sticker.id.in_(id_list)).delete(synchronize_session=False)
+            session.commit()
         return fetch_num
 
     def delete_sticker_whole(self, sticker_name: str):
-        fetch_num = self._session.query(Sticker).filter(Sticker.name == sticker_name).delete()
-        self._session.commit()
-
+        with self._session_scope() as session:
+            fetch_num = session.query(Sticker).filter(Sticker.name == sticker_name).delete()
+            session.commit()
         return fetch_num
 
 
