@@ -1,4 +1,5 @@
 Flask
+Flask-Login
 Flask-SSLify
 Flask-CORS
 discord.py[voice] >= 1.3.4

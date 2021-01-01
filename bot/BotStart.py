@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
+from Database.SQLAlchemyWebLoginOperation import  SQLAlchemyWebLoginOperation
 from GoogleDriverAPI.DrawImage import DrawImage
 import pytube
 from pytube import YouTube
@@ -17,7 +18,8 @@ from CommonFunction import StickerCommon
 
 class StickerBot:
     # sticker_table_name = 'sticker'
-    db_operation = None
+    sticker_db_operation = None
+    web_login_db_operation = None
     draw_image = None
     scheduler = None
     sticker_set = set()
@@ -46,7 +48,8 @@ class StickerBot:
         # 讀取設定
         # WebURL 可為空值, 其餘變數不可為空
         self.token, self.db_url, self.my_web_url\
-            , self.sticker_url, self.save_image_local, _ = StickerCommon.read_setting()
+            , self.sticker_url, self.save_image_local, _\
+            , self.access_web_verification_guild, _ = StickerCommon.read_setting()
         if self.token == '' or self.db_url == '' or self.save_image_local is None:
             return False
         if self.save_image_local and self.sticker_url == '':
@@ -63,10 +66,10 @@ class StickerBot:
         self._init_db()
         self.scheduler = BackgroundScheduler()
         self.draw_image = DrawImage(self.db_url)
-        self.bot_prefix = self.db_operation.get_bot_prefix()
+        self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
         self.scheduler.add_job(self.all_routine_job, 'cron', hour=5, minute=0, timezone=pytz.timezone('Asia/Taipei'))
         if self.bot_prefix is None:
-            self.db_operation.set_bot_prefix('$')
+            self.sticker_db_operation.set_bot_prefix('$')
             self.bot_prefix = '$'
         self._init_bot()
 
@@ -85,8 +88,9 @@ class StickerBot:
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
     def _init_db(self):
-        self.db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local)
-        self.bot_prefix = self.db_operation.get_bot_prefix()
+        self.sticker_db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local)
+        self.web_login_db_operation = SQLAlchemyWebLoginOperation(self.db_url)
+        self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
 
     def all_routine_job(self):
         self.check_local_save()
@@ -95,7 +99,7 @@ class StickerBot:
     def check_local_save(self):
         if self.save_image_local:
             print('check local image save')
-            self.db_operation.check_local_save()
+            self.sticker_db_operation.check_local_save()
             print('finished check local image save')
 
     def update_image_warehouse(self):
@@ -128,7 +132,7 @@ class StickerBot:
             msg_content = msg.content
             msg_channel = msg.channel
 
-            sticker_res = self.db_operation.get_sticker_random(msg_content)
+            sticker_res = self.sticker_db_operation.get_sticker_random(msg_content)
             if sticker_res is not None:
                 img_url = sticker_res[0]
                 local_save = sticker_res[1]
@@ -232,7 +236,7 @@ class StickerBot:
 
         @self.bot.command()
         async def add(ctx: commands.context.Context, sticker_name: str, img_url: str):
-            no_add: list = self.db_operation.add_sticker([{
+            no_add: list = self.sticker_db_operation.add_sticker([{
                 'sn': sticker_name,
                 'url': img_url,
                 'is_gif': False
@@ -260,7 +264,7 @@ class StickerBot:
             else:
                 is_gif = False
 
-            no_change: list = self.db_operation.edit_sticker([{
+            no_change: list = self.sticker_db_operation.edit_sticker([{
                 'id': sticker_id,
                 'url': img_url,
                 'gif': is_gif
@@ -293,7 +297,7 @@ class StickerBot:
                 await ctx.send(is_gif_str + ' 錯誤的格式')
                 return
 
-            no_change: list = self.db_operation.edit_sticker([{
+            no_change: list = self.sticker_db_operation.edit_sticker([{
                 'id': sticker_id,
                 'gif': is_gif
             }])
@@ -312,7 +316,7 @@ class StickerBot:
 
         @self.bot.command()
         async def show(ctx, sticker_name: str):
-            img_list = self.db_operation.get_sticker_all(sticker_name)
+            img_list = self.sticker_db_operation.get_sticker_all(sticker_name)
 
             if len(img_list) > 0:
                 list_len = len(img_list)
@@ -350,25 +354,25 @@ class StickerBot:
                         break
                     id_list.append(x)
                 if not abort:
-                    self.db_operation.delete_sticker(id_list)
+                    self.sticker_db_operation.delete_sticker(id_list)
                     await ctx.send('執行結束')
             else:
                 await ctx.send('請輸入貼圖ID(數字)')
 
         @self.bot.command()
         async def deleteST(ctx, sticker_name: str):
-            self.db_operation.delete_sticker_whole(sticker_name)
+            self.sticker_db_operation.delete_sticker_whole(sticker_name)
             await ctx.send('執行結束')
 
         @self.bot.command()
         async def exist(ctx, cmd):
             """
-            if self.db_operation.get_sticker_first(cmd) is None:
+            if self.sticker_db_operation.get_sticker_first(cmd) is None:
                 await ctx.send(cmd + ' 還沒有貼圖')
             else:
                 await ctx.send(cmd + ' 已經有了')
             """
-            if self.db_operation.is_sticker_name_exist(cmd):
+            if self.sticker_db_operation.is_sticker_name_exist(cmd):
                 await ctx.send(cmd + ' 已經有了')
             else:
                 await ctx.send(cmd + ' 還沒有貼圖')
@@ -376,7 +380,7 @@ class StickerBot:
 
         @self.bot.command()
         async def allST(ctx):
-            sn_list = self.db_operation.get_all_sn_list()
+            sn_list = self.sticker_db_operation.get_all_sn_list()
             send_msg = ''
             send_msg += '貼圖數量' + str(len(sn_list)) + '\n'
             for sticker in sn_list:
@@ -398,6 +402,40 @@ class StickerBot:
                 await ctx.send(embed=embed)
             else:
                 await ctx.send('還沒有圖片')
+
+        @self.bot.command(aliases=['網頁登入', 'WebLogin', 'web-login'])
+        async def webLogin(ctx, code):
+            try:
+                if str(ctx.message.guild.id) not in self.access_web_verification_guild:
+                    await ctx.send('你所在的群組無法進行驗證')
+                    return
+            except:
+                await ctx.send('你所在的群組無法進行驗證')
+                return
+
+            if self.web_login_db_operation.is_code_exist(code):
+                try:
+                    user_id = str(ctx.message.author.id)
+                    name = str(ctx.message.author.name)
+                    avatar_url = str(ctx.message.author.avatar_url)
+                    if not self.web_login_db_operation.is_user_info_exist(user_id):
+                        self.web_login_db_operation.add_user_info(user_id, name, avatar_url)
+                    self.web_login_db_operation.user_id_sing_in(code, user_id)
+                except Exception as e:
+                    await ctx.send('驗證失敗')
+                    return
+                await ctx.send('驗證成功')
+            else:
+                await ctx.send('登入失敗，請確認驗證碼有無錯誤或是否過期')
+
+
+        @self.bot.command()
+        async def test(ctx):
+            print(ctx.message.author.id)
+            print(ctx.message.author.name)
+            print(ctx.message.author.nick)
+            print(ctx.message.author.avatar_url)
+            print(type(ctx.message.guild.id))
 
         @self.bot.command(pass_context=True)
         async def join(ctx):

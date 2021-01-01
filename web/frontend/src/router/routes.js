@@ -3,6 +3,7 @@ import PageLayout from "layouts/PageLayout.vue";
 const routes = [
   {
     path: "/",
+    name: "home",
     component: PageLayout,
     children: [
       {
@@ -22,6 +23,14 @@ const routes = [
         component: () => import("pages/Nothing.vue")
       }
     ]
+  },
+  {
+    path: "/login",
+    component: () => import("pages/Login.vue")
+  },
+  {
+    path: "/success-logout",
+    component: () => import("pages/SuccessLogout.vue")
   }
 ];
 

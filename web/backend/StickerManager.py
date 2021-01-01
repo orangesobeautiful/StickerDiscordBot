@@ -2,22 +2,25 @@ import os
 import sys
 import argparse
 import flask
+import flask_login
 import json
-from flask import Flask, request, abort, render_template, jsonify, send_from_directory
+from flask import Flask, request, abort, render_template, jsonify, send_from_directory, session
 from flask_sslify import SSLify
 from flask_cors import CORS
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
+from Database.SQLAlchemyWebLoginOperation import SQLAlchemyWebLoginOperation
 from CommonFunction import StickerCommon
 
 db_url = ''
+secret_key = ''
 image_return = False
 save_image_local = False
 sticker_download_dir = StickerCommon.sticker_dir
 
 
 def _read_setting():
-    global db_url, image_return, save_image_local
-    _, db_url, _, _, save_image_local, image_return = StickerCommon.read_setting()
+    global db_url, image_return, save_image_local, secret_key
+    _, db_url, _, _, save_image_local, image_return, _, secret_key = StickerCommon.read_setting()
     if db_url == '' or save_image_local is None or image_return is None:
         return False
     return True
@@ -25,13 +28,21 @@ def _read_setting():
 
 if not _read_setting():
     raise OSError('讀取設定失敗，需要在環境變數或設定檔(setting.ini)中提供完整設定值')
-db_operation = SQLAlchemyStickerOperation(db_url, save_image_local)
+sticker_db_operation = SQLAlchemyStickerOperation(db_url, save_image_local)
+web_login_db_operation = SQLAlchemyWebLoginOperation(db_url)
+
 app = Flask(__name__)
+app.secret_key = secret_key
 app.config.from_object(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # sslify = SSLify(app, skips=['h'])
 # SECURE_REDIRECT_EXEMPT = ['/']
+
+login_manager = flask_login.LoginManager()
+login_manager.login_message_category = 'info'
+login_manager.login_message = 'Access denied.'
+login_manager.init_app(app)
 
 """
 @app.after_request
@@ -42,6 +53,18 @@ def after_request(resp):
     resp.headers['Access-Control-Allow-Headers'] = 'content-type,token'
     return resp
 """
+
+
+class User(flask_login.UserMixin):
+    pass
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    user = User()
+    user.id = user_id
+    return user
+
 
 if image_return:
     @app.route("/sticker-image/<path:filename>", methods=['GET'])
@@ -62,7 +85,55 @@ if image_return:
             return '404', 404
 
 
+@app.route('/sndata/has_login', methods=['GET'])
+@flask_login.login_required
+def has_login():
+    return '', 200
+
+
+@app.route('/sndata/get_login_code', methods=['GET'])
+def get_login_code():
+    login_code, expiration_time = web_login_db_operation.generate_verification_code()
+    return jsonify({'code': login_code})
+
+
+@app.route('/sndata/check_login', methods=['GET'])
+def check_login():
+    try:
+        code = request.args.get('code')
+    except ValueError:
+        return jsonify({'error': '錯誤的參數'})
+    login_success, user_id = web_login_db_operation.check_verification_status(code)
+    if login_success:
+        user = User()
+        user.id = user_id
+        flask_login.login_user(user)
+        web_login_db_operation.delete_code(code)
+        return jsonify({'result': '1', 'user_id': user_id})
+    else:
+        return jsonify({'result': '0', 'user_id': -1})
+
+
+@app.route('/sndata/user_info', methods=['GET'])
+@flask_login.login_required
+def user_info():
+    return_data = web_login_db_operation.get_user_info(flask_login.current_user.id)
+    if return_data is None:
+        return '404', 404
+    else:
+        name = return_data[0]
+        avatar_url = return_data[1]
+    return jsonify({'name': name, 'avatar_url': avatar_url})
+
+
+@app.route('/sndata/logout')
+def logout():
+    flask_login.logout_user()
+    return 'Logged out'
+
+
 @app.route("/sndata/all_sticker", methods=['GET'])
+@flask_login.login_required
 def all_sticker():
     try:
         start = request.args.get('start')
@@ -75,8 +146,8 @@ def all_sticker():
     # print('start', start)
     # print('start', start)
     # print('num', num)
-    get_res_list = db_operation.get_sticker_group_by_name(start=start, num=num)
-    maxp = db_operation.max_page(num)
+    get_res_list = sticker_db_operation.get_sticker_group_by_name(start=start, num=num)
+    maxp = sticker_db_operation.max_page(num)
     return_json = dict()
     # print(maxp)
     return_json['maxp'] = maxp
@@ -98,13 +169,14 @@ def all_sticker():
 
 
 @app.route("/sndata/search", methods=['GET'])
+@flask_login.login_required
 def search():
     try:
         query = request.args.get('q')
     except ValueError:
         return jsonify({'error': '錯誤的參數'})
 
-    get_res_list = db_operation.get_sticker_all(query)
+    get_res_list = sticker_db_operation.get_sticker_all(query)
 
     return_json = dict()
     sn_data_dict_list = list()
@@ -122,6 +194,7 @@ def search():
 
 
 @app.route("/sndata/change_sn", methods=['POST'])
+@flask_login.login_required
 def change_sn():
     if request.method == 'POST':
         change_request = request.json
@@ -132,20 +205,20 @@ def change_sn():
                 add_list = list()
                 for add_img in change_request[rtype]:
                     add_list.append({'sn': sticker_name, 'url': add_img['url'], 'is_gif': add_img['gif']})
-                db_operation.add_sticker(add_list)
+                sticker_db_operation.add_sticker(add_list)
             elif rtype == 'edit' and len(change_request[rtype]) > 0:
                 edit_list = list()
                 for edit_img in change_request[rtype]:
                     edit_list.append(edit_img)
-                db_operation.edit_sticker(edit_list)
+                sticker_db_operation.edit_sticker(edit_list)
             elif rtype == 'delete' and len(change_request[rtype]) > 0:
                 del_list = list()
                 for edit_img in change_request[rtype]:
                     del_list .append(edit_img)
-                db_operation.delete_sticker(del_list)
+                sticker_db_operation.delete_sticker(del_list)
 
         r_data = dict()
-        r_data['imgs'] = db_operation.get_sticker_all(sticker_name)
+        r_data['imgs'] = sticker_db_operation.get_sticker_all(sticker_name)
         r_data['err'] = ''
         return jsonify(r_data)
 
