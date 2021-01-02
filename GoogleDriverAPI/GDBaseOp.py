@@ -128,4 +128,3 @@ if __name__ == '__main__':
     print(gd.select_folder())
     #for e in gd.get_folders('root'):
     #    print(e)
-    'https://drive.google.com/uc?export=view&id=1cU9ZSVpKig5AOFoEiavsgdqZf-LoVc1w'
