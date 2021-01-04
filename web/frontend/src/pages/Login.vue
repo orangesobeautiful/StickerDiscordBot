@@ -118,8 +118,8 @@ export default {
       }
     },
     valid_code_expired() {
-      clearInterval(this.set_code_effective_timer);
-      this.set_code_effective_timer = null;
+      clearInterval(this.code_effective_timer);
+      this.code_effective_timer = null;
       this.code_effective_time = 0;
     }
   },
