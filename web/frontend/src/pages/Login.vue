@@ -103,6 +103,7 @@ export default {
           this.code_effective_time -= 1;
           if (this.code_effective_time <= 0) {
             this.valid_code_expired();
+            this.code_effective_time_show_str = "0:00";
           } else {
             var min = parseInt(this.code_effective_time / 60);
             var sec = this.code_effective_time % 60;
@@ -120,6 +121,8 @@ export default {
     valid_code_expired() {
       clearInterval(this.code_effective_timer);
       this.code_effective_timer = null;
+      clearInterval(this.check_login_timer);
+      this.check_login_timer = null;
       this.code_effective_time = 0;
     }
   },
