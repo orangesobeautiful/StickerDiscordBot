@@ -101,7 +101,7 @@ export default {
       if (this.code_effective_timer == null) {
         this.code_effective_timer = setInterval(() => {
           this.code_effective_time -= 1;
-          if (this.code_effective_time < 0) {
+          if (this.code_effective_time <= 0) {
             this.valid_code_expired();
           } else {
             var min = parseInt(this.code_effective_time / 60);
