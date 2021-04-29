@@ -8,6 +8,7 @@ from pytube import YouTube
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 from CommonFunction import StickerCommon
+import random
 
 
 # 頭像提供 https://www.thiswaifudoesnotexist.net/
@@ -250,6 +251,10 @@ class StickerBot:
                     await ctx.send('不支援的網址')
                 elif err_code == 2:
                     await ctx.send(sticker_name + ' 已有相同貼圖')
+
+        @self.bot.command(aliases=['支語'])
+        async def chinese_language(ctx: commands.context.Context):
+            await ctx.send('https://ect.incognitas.net/szh_police/szh_police_' + str(random.randint(1, 10000)) + '.jpg')
 
         @self.bot.command()
         async def edit(ctx, sticker_id: str, img_url: str):
