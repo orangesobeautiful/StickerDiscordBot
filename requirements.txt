@@ -10,3 +10,4 @@ google-auth-oauthlib
 APScheduler
 sqlalchemy
 pymysql
+opencc-python-reimplemented

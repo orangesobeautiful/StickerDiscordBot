@@ -9,7 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 from CommonFunction import StickerCommon
 import random
-
+from opencc import OpenCC
 
 # 頭像提供 https://www.thiswaifudoesnotexist.net/
 
@@ -133,6 +133,9 @@ class StickerBot:
             msg_content = msg.content
             msg_channel = msg.channel
 
+            cc = OpenCC('s2tw')
+            tw_ch = cc.convert(msg_content)
+
             sticker_res = self.sticker_db_operation.get_sticker_random(msg_content)
             if sticker_res is not None:
                 img_url = sticker_res[0]
@@ -151,6 +154,17 @@ class StickerBot:
                     await msg_channel.send(embed=self.com_image_em)
                 """
                 await msg_channel.send(img_url)
+
+            # 支語列表
+            ch_list = ['水平', '質量', '視頻', '傻屌', '親', '菜單', '屏幕', '芯片', 'NMSL', '牛B', '公安', '同志',
+                       '領導', '方便麵', '出租車', '站臺票', '激光', '空調', '信息', '錄像機', '錄像帶', '高校', '統考']
+            ch_msg = False
+            for ch_phase in ch_list:
+                if ch_phase in tw_ch:
+                    ch_msg = True
+                    break
+            if ch_msg:
+                await chinese_language_policemen(msg_channel)
 
             await self.bot.process_commands(msg)
 
@@ -252,8 +266,8 @@ class StickerBot:
                 elif err_code == 2:
                     await ctx.send(sticker_name + ' 已有相同貼圖')
 
-        @self.bot.command(aliases=['支語'])
-        async def chinese_language(ctx: commands.context.Context):
+        @self.bot.command(aliases=['支語', '支語警察', '支語警察支援', '支語警察API', '支語API'])
+        async def chinese_language_policemen(ctx: commands.context.Context):
             await ctx.send('https://ect.incognitas.net/szh_police/szh_police_' + str(random.randint(1, 10000)) + '.jpg')
 
         @self.bot.command()
