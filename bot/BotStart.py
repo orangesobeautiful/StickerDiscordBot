@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
 from Database.SQLAlchemyWebLoginOperation import  SQLAlchemyWebLoginOperation
-from GoogleDriverAPI.DrawImage import DrawImage
 import pytube
 from pytube import YouTube
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -66,7 +65,6 @@ class StickerBot:
         print('discord.opus=' + str(self.load_opus_lib(self.OPUS_LIBS)))
         self._init_db()
         self.scheduler = BackgroundScheduler()
-        self.draw_image = DrawImage(self.db_url)
         self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
         self.scheduler.add_job(self.all_routine_job, 'cron', hour=5, minute=0, timezone=pytz.timezone('Asia/Taipei'))
         if self.bot_prefix is None:
@@ -95,18 +93,12 @@ class StickerBot:
 
     def all_routine_job(self):
         self.check_local_save()
-        self.update_image_warehouse()
 
     def check_local_save(self):
         if self.save_image_local:
             print('check local image save')
             self.sticker_db_operation.check_local_save()
             print('finished check local image save')
-
-    def update_image_warehouse(self):
-        print('update image warehouse')
-        self.draw_image.update_images()
-        print('finished update image warehouse')
 
     """
     def write_sticker_list_file(self):
@@ -405,22 +397,6 @@ class StickerBot:
             for sticker in sn_list:
                 send_msg += sticker + '\t'
             await ctx.send(send_msg)
-
-        @self.bot.command(aliases=['di', '抽卡', '油圖', '抽圖', '抽油圖'])
-        async def drawImage(ctx):
-            img_id = self.draw_image.get_rand_image_id()
-            img_title = 'https://drive.google.com/uc?export=view&id=' + img_id
-            """
-            #use proxy
-            img_url = self.image_proxy_url + '/' + img_id
-            """
-            img_url = 'https://drive.google.com/uc?export=view&id=' + img_id
-            embed = discord.Embed(title=img_title, url=img_url, color=0xff8040)
-            embed.set_image(url=img_url)
-            if img_url:
-                await ctx.send(embed=embed)
-            else:
-                await ctx.send('還沒有圖片')
 
         @self.bot.command(aliases=['網頁登入', 'WebLogin', 'web-login'])
         async def webLogin(ctx, code):
