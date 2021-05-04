@@ -81,10 +81,11 @@ class SQLAlchemyWebLoginOperation:
             session.close()
 
     def _create_tables(self):
+        insp = sqlalchemy.inspect(self._engine)
         # if table is not exist than create
-        if not self._engine.dialect.has_table(self._engine, _web_login_verification_table_name):
+        if not insp.has_table(_web_login_verification_table_name, None):
             WebLoginVerification.metadata.create_all(self._engine)
-        if not self._engine.dialect.has_table(self._engine, _web_user_info_table_name):
+        if not insp.has_table(_web_user_info_table_name, None):
             WebUserInfo.metadata.create_all(self._engine)
 
     def is_code_exist(self, code: str):

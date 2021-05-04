@@ -4,6 +4,7 @@
 ## 功能
 * 貼圖回覆 - 幫你回復設定好的圖片
 * 支語糾察 - 偵測到支語時，支與警察會跳出來
+* Youtube - 簡易的 Youtube 播放功能
 
 ## 安裝
 **[bot 篇]**
@@ -30,7 +31,7 @@ python3 runBot.py
 編寫設定檔(setting.ini)，修改 機器人token 和 資料庫
 
 `bot_token = 你的機器人token`  
-`database_url = mysql+pymysql://<user_name>:<password>@<ip_address>/<database_name>`
+`database_url = mysql+pymysql://<user_name>:<password>@<ip_address>/<database_name>?charset=utf8`
 
 啟動機器人
 ```
@@ -72,5 +73,7 @@ python3 runWebBackend.py
 | `$add <圖片名稱> <圖片網址>` | 新增一個自動回覆的圖片 |
 | `$show <圖片名稱>` | 顯示設定過的圖片 |
 | `$edit <圖片ID> <圖片網址>` | 修改圖片網址 |
-| `delete <圖片ID>` | 刪除指定ID圖片 |
-| `deleteST <圖片名稱>` | 刪除圖片名稱設定過的所有圖片 |
+| `$delete <圖片ID>` | 刪除指定ID圖片 |
+| `$deleteST <圖片名稱>` | 刪除圖片名稱設定過的所有圖片 |
+| `$play <youtube url>` | 播放 Youtube 音樂 |
+| `$stop` | 停止播放 |

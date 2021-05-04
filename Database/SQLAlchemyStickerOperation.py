@@ -196,11 +196,12 @@ class SQLAlchemyStickerOperation:
             session.close()
 
     def _create_tables(self):
+        insp = sqlalchemy.inspect(self._engine)
         # if table is not exist than create
-        if not self._engine.dialect.has_table(self._engine, _sticker_table_name):
+        if not insp.has_table(_sticker_table_name, None):
             Sticker.metadata.create_all(self._engine)
 
-        if not self._engine.dialect.has_table(self._engine, _bot_info_table_name):
+        if not insp.has_table(_bot_info_table_name, None):
             BotInfo.metadata.create_all(self._engine)
 
     def get_bot_prefix(self):
