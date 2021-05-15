@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
-from Database.SQLAlchemyWebLoginOperation import  SQLAlchemyWebLoginOperation
+from Database.SQLAlchemyWebLoginOperation import SQLAlchemyWebLoginOperation
 import youtube_dl
 import asyncio
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -9,7 +9,6 @@ import pytz
 from CommonFunction import StickerCommon
 import random
 from opencc import OpenCC
-import json
 
 # 頭像提供 https://www.thiswaifudoesnotexist.net/
 
@@ -40,7 +39,7 @@ yt_dl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
+    def __init__(self, source, *, data, volume=1.0):
         super().__init__(source, volume)
         self.data = data
         self.title = data.get('title')
@@ -207,17 +206,6 @@ class StickerBot:
                     await msg_channel.send(embed=self.com_image_em)
                 """
                 await msg_channel.send(img_url)
-
-            # 支語列表
-            ch_list = ['水平', '質量', '視頻', '傻屌', '親', '菜單', '屏幕', '芯片', 'NMSL', '牛B', '公安', '同志',
-                       '領導', '方便麵', '出租車', '站臺票', '激光', '空調', '信息', '錄像機', '錄像帶', '高校', '統考']
-            ch_msg = False
-            for ch_phase in ch_list:
-                if ch_phase in tw_ch:
-                    ch_msg = True
-                    break
-            if ch_msg:
-                await chinese_language_policemen(msg_channel)
 
             await self.bot.process_commands(msg)
 
@@ -571,7 +559,7 @@ class StickerBot:
                 if voice_client.is_playing():
                     await ctx.send("已經在播放了")
                 else:
-                    voice_client.play(self.current_voice_source)
+                    voice_client.play(self.current_voice_source, after=None)
                     await ctx.send("開始播放")
 
         @self.bot.command()
