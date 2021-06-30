@@ -170,7 +170,7 @@ class SQLAlchemyStickerOperation:
     _session = None
     _engine = None
 
-    def __init__(self, db_url: str, save_image_local: bool, sticker_url: str= ""):
+    def __init__(self, db_url: str, save_image_local: bool, sticker_url: str = ""):
         self._db_url = db_url
         self.save_image_local = save_image_local
         self._init_db(db_url)
@@ -348,10 +348,10 @@ class SQLAlchemyStickerOperation:
                     save_path = os.path.join(sticker_download_dir, local_save)
                     if os.path.isfile(save_path):
                         # 本地圖片依然存在 檢查原網址是否可用 如果不可用則替換成本地圖片
-                        if img_url != self.sticker_url + 'sticker-image/' + local_save:
+                        if img_url != self._sticker_url + 'sticker-image/' + local_save:
                             if not download_image(img_url, save_path):
                                 session.query(Sticker).filter(Sticker.id == s_id).update(
-                                    {Sticker.img_url: self.sticker_url + 'sticker-image/' + local_save})
+                                    {Sticker.img_url: self._sticker_url + 'sticker-image/' + local_save})
                     else:
                         if not download_image(img_url, save_path):
                             download_failed_list.append((s_id, img_url))
