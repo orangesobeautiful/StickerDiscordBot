@@ -348,8 +348,9 @@ class SQLAlchemyStickerOperation:
                     save_path = os.path.join(sticker_download_dir, local_save)
                     if os.path.isfile(save_path):
                         # 本地圖片依然存在 檢查原網址是否可用 如果不可用則替換成本地圖片
+                        tmp_path = os.path.join(sticker_download_dir, 'tmp')
                         if img_url != self._sticker_url + 'sticker-image/' + local_save:
-                            if not download_image(img_url, save_path):
+                            if not download_image(img_url, tmp_path):
                                 session.query(Sticker).filter(Sticker.id == s_id).update(
                                     {Sticker.img_url: self._sticker_url + 'sticker-image/' + local_save})
                     else:
