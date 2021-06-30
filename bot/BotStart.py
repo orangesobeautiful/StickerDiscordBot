@@ -147,7 +147,7 @@ class StickerBot:
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
     def _init_db(self):
-        self.sticker_db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local)
+        self.sticker_db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local, self.sticker_url)
         self.web_login_db_operation = SQLAlchemyWebLoginOperation(self.db_url)
         self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
 
