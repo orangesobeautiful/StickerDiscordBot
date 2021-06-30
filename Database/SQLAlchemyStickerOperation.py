@@ -319,6 +319,7 @@ class SQLAlchemyStickerOperation:
 
         return orgn_url == img_url, sticker_name
 
+    # 檢查本地圖片是否存在 找不到檔案則重新下載
     def check_local_save(self):
         with self._session_scope() as session:
             query_data = session.query(Sticker.id, Sticker.img_url, Sticker.local_save).all()
@@ -344,13 +345,16 @@ class SQLAlchemyStickerOperation:
                     else:
                         download_failed_list.append((s_id, img_url))
                 else:
-                    # 檢查原圖片網址是否失效，如果下載失敗則替換網址為本地儲存圖片
                     save_path = os.path.join(sticker_download_dir, local_save)
-                    if not os.path.isfile(save_path):
+                    if os.path.isfile(save_path):
+                        # 本地圖片依然存在 檢查原網址是否可用 如果不可用則替換成本地圖片
+                        if img_url != self.sticker_url + 'sticker-image/' + local_save:
+                            if not download_image(img_url, save_path):
+                                session.query(Sticker).filter(Sticker.id == s_id).update(
+                                    {Sticker.img_url: self.sticker_url + 'sticker-image/' + local_save})
+                    else:
                         if not download_image(img_url, save_path):
                             download_failed_list.append((s_id, img_url))
-                            session.query(Sticker).filter(Sticker.id == s_id).update(
-                                {Sticker.img_url: self.sticker_url + 'sticker-image/' + local_save})
 
             session.commit()
 
