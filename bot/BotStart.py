@@ -120,7 +120,7 @@ class StickerBot:
         self._init_db()
         self.scheduler = BackgroundScheduler()
         self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
-        self.scheduler.add_job(self.all_routine_job, 'cron', hour=22, minute=5, timezone=pytz.timezone('Asia/Taipei'))
+        self.scheduler.add_job(self.all_routine_job, 'cron', hour=5, minute=0, timezone=pytz.timezone('Asia/Taipei'))
         if self.bot_prefix is None:
             self.sticker_db_operation.set_bot_prefix('$')
             self.bot_prefix = '$'

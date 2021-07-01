@@ -80,7 +80,7 @@ def trans_url(img_url: str):
     return img_url
 
 
-def download_image(url: str, filename: str):
+def download_image(url: str, filename: str, with_type: bool = False):
     retry_times = 2
     success_download = False
     complete_filename = ''
@@ -99,7 +99,10 @@ def download_image(url: str, filename: str):
                 success_download = False
                 break
 
-            complete_filename = filename + '.' + img_type
+            if with_type:
+                complete_filename = filename
+            else:
+                complete_filename = filename + '.' + img_type
 
             # write image
             with open(os.path.join(sticker_download_dir, complete_filename), 'wb') as download_file:
@@ -350,7 +353,8 @@ class SQLAlchemyStickerOperation:
                         # 本地圖片依然存在 檢查原網址是否可用 如果不可用則替換成本地圖片
                         tmp_path = os.path.join(sticker_download_dir, 'tmp')
                         if img_url != self._sticker_url + 'sticker-image/' + local_save:
-                            if not download_image(img_url, tmp_path):
+                            dl_success, _ = download_image(img_url, tmp_path, with_type=True)
+                            if not dl_success:
                                 session.query(Sticker).filter(Sticker.id == s_id).update(
                                     {Sticker.img_url: self._sticker_url + 'sticker-image/' + local_save})
                     else:
@@ -359,7 +363,7 @@ class SQLAlchemyStickerOperation:
 
             session.commit()
 
-        return download_failed_list
+            return download_failed_list
 
     def add_sticker(self, add_list: list):
         """
