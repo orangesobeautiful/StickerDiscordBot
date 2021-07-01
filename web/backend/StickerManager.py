@@ -218,7 +218,11 @@ def change_sn():
                 sticker_db_operation.delete_sticker(del_list)
 
         r_data = dict()
-        r_data['imgs'] = sticker_db_operation.get_sticker_all(sticker_name)
+        # 把 tuple 轉為 list ， jsonify 不支援 tuple
+        img_list = list()
+        for sticker_ele in sticker_db_operation.get_sticker_all(sticker_name):
+            img_list.append(list(sticker_ele))
+        r_data['imgs'] = img_list
         r_data['err'] = ''
         return jsonify(r_data)
 
