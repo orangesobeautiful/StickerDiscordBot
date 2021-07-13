@@ -1,7 +1,7 @@
 {
   "name": "ourbot",
   "version": "0.0.1",
-  "description": "Umm..",
+  "description": "貼圖管理網頁",
   "productName": "ourbot",
   "cordovaId": "org.cordova.quasar.app",
   "capacitorId": "",
