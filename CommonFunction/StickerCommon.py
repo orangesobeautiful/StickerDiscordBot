@@ -24,6 +24,7 @@ def read_setting():
     sticker_url = ''
     access_web_verification_guild = list()
     flask_secret_key = ''
+    flask_router_prefix = ''
     save_image_local = None
     flask_return_sticker = None
 
@@ -55,6 +56,7 @@ def read_setting():
             conf.set('Environment', 'AccessWebVerificationGuild', '')
             conf.add_section('FlaskSetting')
             conf.set('FlaskSetting', 'FlaskSecretKey', '')
+            conf.set('FlaskSetting', 'RouterPrefix', '/sndata')
             conf.add_section('AdditionFunction')
             conf.set('AdditionFunction', 'SaveImageLocal', 'False')
             conf.set('AdditionFunction', 'FlaskReturnSticker', 'False')
@@ -71,6 +73,7 @@ def read_setting():
                 access_web_verification_guild = env_section['AccessWebVerificationGuild']
                 flask_setting_section = conf['FlaskSetting']
                 flask_secret_key = flask_setting_section['FlaskSecretKey']
+                flask_router_prefix = flask_setting_section['RouterPrefix']
                 addition_section = conf['AdditionFunction']
                 save_image_local = addition_section['SaveImageLocal']
                 flask_return_sticker = addition_section['FlaskReturnSticker']
@@ -85,4 +88,4 @@ def read_setting():
                 with open(setting_path, 'w', encoding='utf-8') as setting_file:
                     conf.write(setting_file)
 
-    return token, db_url, my_web_url, sticker_url, save_image_local, flask_return_sticker, access_web_verification_guild, flask_secret_key
+    return token, db_url, my_web_url, sticker_url, save_image_local, flask_return_sticker, access_web_verification_guild, flask_secret_key, flask_router_prefix

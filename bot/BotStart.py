@@ -103,7 +103,7 @@ class StickerBot:
         # WebURL 可為空值, 其餘變數不可為空
         self.token, self.db_url, self.my_web_url\
             , self.sticker_url, self.save_image_local, _\
-            , self.access_web_verification_guild, _ = StickerCommon.read_setting()
+            , self.access_web_verification_guild, _, _ = StickerCommon.read_setting()
         if self.token == '' or self.db_url == '' or self.save_image_local is None:
             return False
         if self.save_image_local and self.sticker_url == '':

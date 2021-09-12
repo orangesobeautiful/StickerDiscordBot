@@ -13,14 +13,15 @@ from CommonFunction import StickerCommon
 
 db_url = ''
 secret_key = ''
+router_prefix = ''
 image_return = False
 save_image_local = False
 sticker_download_dir = StickerCommon.sticker_dir
 
 
 def _read_setting():
-    global db_url, image_return, save_image_local, secret_key
-    _, db_url, _, _, save_image_local, image_return, _, secret_key = StickerCommon.read_setting()
+    global db_url, image_return, save_image_local, secret_key, router_prefix
+    _, db_url, _, _, save_image_local, image_return, _, secret_key, router_prefix = StickerCommon.read_setting()
     if db_url == '' or save_image_local is None or image_return is None:
         return False
     return True
@@ -85,19 +86,19 @@ if image_return:
             return '404', 404
 
 
-@app.route('/sndata/has_login', methods=['GET'])
+@app.route(router_prefix + '/has_login', methods=['GET'])
 @flask_login.login_required
 def has_login():
     return '', 200
 
 
-@app.route('/sndata/get_login_code', methods=['GET'])
+@app.route(router_prefix + '/get_login_code', methods=['GET'])
 def get_login_code():
     login_code, expiration_time = web_login_db_operation.generate_verification_code()
     return jsonify({'code': login_code})
 
 
-@app.route('/sndata/check_login', methods=['GET'])
+@app.route(router_prefix + '/check_login', methods=['GET'])
 def check_login():
     try:
         code = request.args.get('code')
@@ -114,7 +115,7 @@ def check_login():
         return jsonify({'result': '0', 'user_id': -1})
 
 
-@app.route('/sndata/user_info', methods=['GET'])
+@app.route(router_prefix + '/user_info', methods=['GET'])
 @flask_login.login_required
 def user_info():
     return_data = web_login_db_operation.get_user_info(flask_login.current_user.id)
@@ -126,13 +127,13 @@ def user_info():
     return jsonify({'name': name, 'avatar_url': avatar_url})
 
 
-@app.route('/sndata/logout')
+@app.route(router_prefix + '/logout')
 def logout():
     flask_login.logout_user()
     return 'Logged out'
 
 
-@app.route("/sndata/all_sticker", methods=['GET'])
+@app.route(router_prefix + "/all_sticker", methods=['GET'])
 @flask_login.login_required
 def all_sticker():
     try:
@@ -168,7 +169,7 @@ def all_sticker():
     return jsonify(return_json)
 
 
-@app.route("/sndata/search", methods=['GET'])
+@app.route(router_prefix + "/search", methods=['GET'])
 @flask_login.login_required
 def search():
     try:
@@ -193,7 +194,7 @@ def search():
     return jsonify(return_json)
 
 
-@app.route("/sndata/change_sn", methods=['POST'])
+@app.route(router_prefix + "/change_sn", methods=['POST'])
 @flask_login.login_required
 def change_sn():
     if request.method == 'POST':
