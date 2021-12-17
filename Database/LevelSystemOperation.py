@@ -62,7 +62,7 @@ class UserEXP(_Base):
     user_id = sqlalchemy.Column(
         'user_id', sqlalchemy.String(128), primary_key=True, nullable=False)
     guild_id = sqlalchemy.Column(
-        'guild_id', sqlalchemy.String(128), nullable=False)
+        'guild_id', sqlalchemy.String(128), primary_key=True ,nullable=False)
     exp = sqlalchemy.Column(
         'exp', sqlalchemy.BigInteger, default=0, nullable=False)
     daily_signin = sqlalchemy.Column(

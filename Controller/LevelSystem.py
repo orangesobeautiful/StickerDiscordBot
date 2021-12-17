@@ -40,7 +40,7 @@ class LevelSystemController:
             lv_base: float = \
                 float(LevelSystemOperation.init_lv_setting(session, _const_lv_base_name, str(1.05)))
             lv_coefficient: float = \
-                float(LevelSystemOperation.init_lv_setting(session, _const_lv_coefficient_name, str(2000)))
+                float(LevelSystemOperation.init_lv_setting(session, _const_lv_coefficient_name, str(10000)))
             self.max_lv: int = \
                 int(LevelSystemOperation.init_lv_setting(session, _const_max_lv_name, str(100)))
             self.lv_cumulative_exp_list: list = self.lv_exp_calculate(lv_base, lv_coefficient)
