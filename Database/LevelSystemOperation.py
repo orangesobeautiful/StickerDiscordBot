@@ -144,8 +144,13 @@ def init_lv_setting(session: Session, name: str, default_value: str) -> str:
 
 def get_user_exp_info(session: Session, user_id: str, guild_id: str) -> UserEXP:
     """get user exp info"""
-    return session.query(UserEXP).filter(
+    exp_info = session.query(UserEXP).filter(
         sqlalchemy.and_(UserEXP.user_id == user_id, UserEXP.guild_id == guild_id)).first()
+    if exp_info is None:
+        user_exp_info = UserEXP(user_id, guild_id)
+        user_exp_info.create(session)
+        return user_exp_info
+    return exp_info
 
 
 def update_user_exp_info(session: Session, user_id: str, guild_id: str, update_col: dict) -> None:
@@ -157,10 +162,6 @@ def update_user_exp_info(session: Session, user_id: str, guild_id: str, update_c
 
 def add_exp(session: Session, user_id: str, guild_id: str, exp: int) -> None:
     """add user exp, is user is not exist will create"""
-    if get_user_exp_info(session, user_id, guild_id) is None:
-        user_exp_info = UserEXP(user_id, guild_id)
-        user_exp_info.exp = exp
-        user_exp_info.create(session)
     session.query(UserEXP).filter(sqlalchemy.and_(
         UserEXP.user_id == user_id, UserEXP.guild_id == guild_id)).update(
         {UserEXP.exp: UserEXP.exp + exp})
