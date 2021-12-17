@@ -154,7 +154,7 @@ class LevelSystemController:
             update_col[LevelSystemOperation.UserEXP.daily_signin] = True
             emit_exp = self.daily_signin_mission_reward
             mission_reward += emit_exp
-            exp_status_msg = "每日簽到任務完成，獲得 " + emit_exp + " 經驗值\n"
+            exp_status_msg = "每日簽到任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
             # 檢查每周簽到任務
             if user_exp_info.weekly_signin < 1 * self.weekly_mission_target_times:
                 user_exp_info.weekly_signin += 1
@@ -163,7 +163,7 @@ class LevelSystemController:
                 if user_exp_info.weekly_signin == 1 * self.weekly_mission_target_times:
                     emit_exp = self.daily_signin_mission_reward * self.weekly_mission_reward_times
                     mission_reward += emit_exp
-                    exp_status_msg = "每周簽到任務完成，獲得 " + emit_exp + " 經驗值\n"
+                    exp_status_msg = "每周簽到任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
 
         # 更新經驗值
         if mission_reward > 0:
@@ -193,7 +193,7 @@ class LevelSystemController:
                 if user_exp_info.daily_message == self.daily_message_mission_target:
                     emit_exp = self.daily_message_mission_reward
                     mission_reward += emit_exp
-                    exp_status_msg = "每日訊息量任務完成，獲得 " + emit_exp + " 經驗值\n"
+                    exp_status_msg = "每日訊息量任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
             # 檢查每日字數量任務
             if user_exp_info.daily_word < self.daily_word_mission_target:
                 user_exp_info.daily_word += len(msg_content)
@@ -205,7 +205,7 @@ class LevelSystemController:
                 if user_exp_info.daily_word == self.daily_word_mission_target:
                     emit_exp = self.daily_word_mission_reward
                     mission_reward += emit_exp
-                    exp_status_msg = "每日字數量任務完成，獲得 " + emit_exp + " 經驗值\n"
+                    exp_status_msg = "每日字數量任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
             # 檢查每週訊息量任務
             if user_exp_info.weekly_message < self.daily_message_mission_target * self.weekly_mission_target_times:
                 user_exp_info.weekly_message += 1
@@ -214,7 +214,7 @@ class LevelSystemController:
                 if user_exp_info.weekly_message == self.daily_message_mission_target * self.weekly_mission_target_times:
                     emit_exp = self.daily_message_mission_reward * self.weekly_mission_reward_times
                     mission_reward += emit_exp
-                    exp_status_msg = "每周訊息量任務完成，獲得 " + emit_exp + " 經驗值\n"
+                    exp_status_msg = "每周訊息量任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
             # 檢查每週字數量任務
             if user_exp_info.weekly_word < self.daily_word_mission_target * self.weekly_mission_target_times:
                 user_exp_info.weekly_word += len(msg_content)
@@ -226,7 +226,7 @@ class LevelSystemController:
                 if user_exp_info.weekly_word == self.daily_word_mission_target * self.weekly_mission_target_times:
                     emit_exp = self.deaily_word_mission_reward * self.weekly_mission_reward_times
                     mission_reward += emit_exp
-                    exp_status_msg = "每周字數量任務完成，獲得 " + emit_exp + " 經驗值\n"
+                    exp_status_msg = "每周字數量任務完成，獲得 " + str(emit_exp) + " 經驗值\n"
 
         # 更新經驗值
         if mission_reward > 0:
