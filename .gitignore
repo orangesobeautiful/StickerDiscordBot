@@ -24,3 +24,5 @@ token.pickle
 # Test File
 test.py
 Test.py
+*.dll
+*.txt
