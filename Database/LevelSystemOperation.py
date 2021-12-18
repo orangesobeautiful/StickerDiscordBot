@@ -168,10 +168,10 @@ def add_exp(session: Session, user_id: str, guild_id: str, exp: int) -> None:
     session.commit()
 
 
-def reset_mission_status(session: Session, is_weekend: bool) -> None:
+def reset_mission_status(session: Session, reset_week: bool) -> None:
     update_col = {
         UserEXP.daily_signin: False, UserEXP.daily_link: 0, UserEXP.daily_message: 0}
-    if is_weekend:
+    if reset_week:
         update_col.update({
             UserEXP.week_link: 0, UserEXP.week_message: 0, UserEXP.weekly_signin: 0})
 

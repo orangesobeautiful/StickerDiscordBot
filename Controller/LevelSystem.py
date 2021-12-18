@@ -73,6 +73,10 @@ class LevelSystemController:
             self.weekly_mission_reward_times: int = \
                 int(LevelSystemOperation.init_lv_setting(session, _const_weekly_mission_reward_times_name, str(7)))
 
+            print(self.daily_message_mission_reward)
+            print(self.daily_word_mission_reward)
+            print()
+
     def current_lv(self, current_cumulative_exp: int) -> int:
         """根據黨前累計經驗計算現在等級"""
         # 有時間用二分搜尋法
@@ -136,10 +140,10 @@ class LevelSystemController:
         """重製每日和每周任務狀態"""
         now = datetime.datetime.now(self._timezone)
         with self._session_maker() as session:
-            is_weekend = False
-            if now.weekday() > 4:
-                is_weekend = True
-            LevelSystemOperation.reset_mission_status(session, is_weekend)
+            reset_week = False
+            if now.weekday() == 0:
+                reset_week = True
+            LevelSystemOperation.reset_mission_status(session, reset_week)
 
     def user_signin(self, user_id: str, guild_id: str) -> str:
         """訊息簽到狀態"""
