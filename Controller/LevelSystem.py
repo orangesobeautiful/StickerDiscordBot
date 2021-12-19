@@ -73,10 +73,6 @@ class LevelSystemController:
             self.weekly_mission_reward_times: int = \
                 int(LevelSystemOperation.init_lv_setting(session, _const_weekly_mission_reward_times_name, str(7)))
 
-            print(self.daily_message_mission_reward)
-            print(self.daily_word_mission_reward)
-            print()
-
     def current_lv(self, current_cumulative_exp: int) -> int:
         """根據黨前累計經驗計算現在等級"""
         # 有時間用二分搜尋法
