@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
+from sqlalchemy import create_engine
 from Database.SQLAlchemyStickerOperation import SQLAlchemyStickerOperation
 from Database.SQLAlchemyWebLoginOperation import SQLAlchemyWebLoginOperation
+from Controller.LevelSystem import LevelSystemController
 import youtube_dl
 import asyncio
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -71,15 +73,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class StickerBot:
-    # sticker_table_name = 'sticker'
     sticker_db_operation = None
     web_login_db_operation = None
     draw_image = None
     scheduler = None
     sticker_set = set()
     show_num_max = 3
-    # /img-proxy/google-driver
-    # image_proxy_url = os.environ['ImgProxyURL']
 
     cmd_dict = dict()
     cmd_change = False
@@ -95,16 +94,16 @@ class StickerBot:
 
         if not self._read_setting():
             raise OSError('讀取設定失敗，需要在環境變數或設定檔(setting.ini)中提供完整設定值')
-        # self.db_url = "postgres://postgres:@127.0.0.1:5432/postgres"
+        # self._db_url = "postgres://postgres:@127.0.0.1:5432/postgres"
         self._init_app()
 
     def _read_setting(self):
         # 讀取設定
         # WebURL 可為空值, 其餘變數不可為空
-        self.token, self.db_url, self.my_web_url\
+        self.token, self._db_url, self.my_web_url\
             , self.sticker_url, self.save_image_local, _\
             , self.access_web_verification_guild, _, _ = StickerCommon.read_setting()
-        if self.token == '' or self.db_url == '' or self.save_image_local is None:
+        if self.token == '' or self._db_url == '' or self.save_image_local is None:
             return False
         if self.save_image_local and self.sticker_url == '':
             return False
@@ -117,14 +116,17 @@ class StickerBot:
 
     def _init_app(self):
         print('discord.opus=' + str(self.load_opus_lib(self.OPUS_LIBS)))
+        self._timezone = pytz.timezone('Asia/Taipei')
         self._init_db()
+        self._init_controllers()
         self.scheduler = BackgroundScheduler()
         self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
-        self.scheduler.add_job(self.all_routine_job, 'cron', hour=5, minute=0, timezone=pytz.timezone('Asia/Taipei'))
         if self.bot_prefix is None:
             self.sticker_db_operation.set_bot_prefix('$')
             self.bot_prefix = '$'
         self._init_bot()
+        self.scheduler.add_job(self.daily_routine_job, 'cron', hour=5, minute=0, timezone=self._timezone)
+        self.scheduler.add_job(self.online_exp_emit, 'interval', minutes=1)
 
     def load_opus_lib(self, opus_libs=OPUS_LIBS):
         # discord.opus
@@ -147,14 +149,39 @@ class StickerBot:
         raise RuntimeError('Could not load an opus lib. Tried %s' % (', '.join(opus_libs)))
 
     def _init_db(self):
-        self.sticker_db_operation = SQLAlchemyStickerOperation(self.db_url, self.save_image_local, self.sticker_url)
-        self.web_login_db_operation = SQLAlchemyWebLoginOperation(self.db_url)
+        self._db_engine = create_engine(self._db_url, pool_pre_ping=True, echo=False, pool_recycle=7200)
+
+        self.sticker_db_operation = SQLAlchemyStickerOperation(self._db_url, self.save_image_local, self.sticker_url)
+        self.web_login_db_operation = SQLAlchemyWebLoginOperation(self._db_url)
         self.bot_prefix = self.sticker_db_operation.get_bot_prefix()
 
-    def all_routine_job(self):
+    def _init_controllers(self):
+        self.lv_controller = LevelSystemController(self._db_engine, self._timezone)
+
+    def daily_routine_job(self):
         self.check_local_save()
-        with open("end.txt", 'w', encoding='utf-8') as f:
-            f.write("end")
+        self.lv_controller.daily_reset()
+
+    def list_all_online_member(self) -> dict():
+        guild_online_members = dict()
+        guild_list = self.bot.guilds
+        for guild in guild_list:
+            member_id_set = set()
+            # 所有非離線狀態的成員
+            for member in guild.members:
+                if member.status != discord.Status.offline and not member.bot:
+                    member_id_set.add(member.id)
+
+            # 有些成員會開隱身，但是在 voice channel 還是可以看到他們，因此也掃描所有 voice channel 的成員
+            for voice_channel in guild.voice_channels:
+                for member in voice_channel.members:
+                    member_id_set.add(member.id)
+
+            guild_online_members[guild.id] = member_id_set
+        return guild_online_members
+
+    def online_exp_emit(self):
+        self.lv_controller.emit_online_exp_reward(self.list_all_online_member())
 
     def check_local_save(self):
         if self.save_image_local:
@@ -171,7 +198,10 @@ class StickerBot:
     """
 
     def _init_bot(self):
-        self.bot = commands.Bot(command_prefix=self.bot_prefix, description='貼圖小幫手')
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.presences = True
+        self.bot = commands.Bot(intents=intents, command_prefix=self.bot_prefix, description='貼圖小幫手')
 
         @self.bot.event
         async def on_ready():
@@ -181,35 +211,30 @@ class StickerBot:
             print('------')
 
         @self.bot.event
-        async def on_message(msg):
-            if msg.author == self.bot.user:  # this is to prevent crashing via infinite loops
+        async def on_message(msg: discord.Message):
+            if msg.author.bot:  # 不處理機器人發出的訊息
                 return
-            msg_content = msg.content
+            msg_content: str = msg.content
             msg_channel = msg.channel
 
-            cc = OpenCC('s2tw')
-            tw_ch = cc.convert(msg_content)
+            is_command = False
+            if msg_content.startswith(self.bot_prefix):
+                is_command = True
 
-            sticker_res = self.sticker_db_operation.get_sticker_random(msg_content)
-            if sticker_res is not None:
-                img_url = sticker_res[0]
-                local_save = sticker_res[1]
-                is_gif = sticker_res[2]
+            self.lv_controller.message_deal(msg.author.id, msg.guild.id, msg_content, is_command)
 
-                if self.save_image_local and local_save != '':
-                    img_url = self.sticker_url + 'sticker-image/' + local_save
+            if is_command:
+                await self.bot.process_commands(msg)
+            else:
+                sticker_res = self.sticker_db_operation.get_sticker_random(msg_content)
+                if sticker_res is not None:
+                    img_url = sticker_res[0]
+                    local_save = sticker_res[1]
+                    is_gif = sticker_res[2]
 
-                """
-                #old method
-                if is_gif:
+                    if self.save_image_local and local_save != '':
+                        img_url = self.sticker_url + 'sticker-image/' + local_save
                     await msg_channel.send(img_url)
-                else:
-                    self.com_image_em.set_image(url=img_url)
-                    await msg_channel.send(embed=self.com_image_em)
-                """
-                await msg_channel.send(img_url)
-
-            await self.bot.process_commands(msg)
 
         @self.bot.event
         async def on_command_error(ctx, error):
@@ -435,17 +460,10 @@ class StickerBot:
 
         @self.bot.command()
         async def exist(ctx, cmd):
-            """
-            if self.sticker_db_operation.get_sticker_first(cmd) is None:
-                await ctx.send(cmd + ' 還沒有貼圖')
-            else:
-                await ctx.send(cmd + ' 已經有了')
-            """
             if self.sticker_db_operation.is_sticker_name_exist(cmd):
                 await ctx.send(cmd + ' 已經有了')
             else:
                 await ctx.send(cmd + ' 還沒有貼圖')
-
 
         @self.bot.command()
         async def allST(ctx):
@@ -455,6 +473,10 @@ class StickerBot:
             for sticker in sn_list:
                 send_msg += sticker + '\t'
             await ctx.send(send_msg)
+
+        @self.bot.command(aliases=['lvinfo'])
+        async def lv_info(ctx):
+            await ctx.send(self.lv_controller.user_lv_info(ctx.message.author.name, ctx.message.author.id, ctx.message.guild.id))
 
         @self.bot.command(aliases=['網頁登入', 'WebLogin', 'web-login'])
         async def webLogin(ctx, code):
@@ -489,6 +511,7 @@ class StickerBot:
             print(ctx.message.author.nick)
             print(ctx.message.author.avatar_url)
             print(type(ctx.message.guild.id))
+            print(ctx.message.guild.members)
 
         @self.bot.command(pass_context=True)
         async def join(ctx):

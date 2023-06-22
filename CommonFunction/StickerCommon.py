@@ -53,6 +53,7 @@ def read_setting():
             conf.set('Environment', 'DATABASE_URL', '')
             conf.set('Environment', 'WebURL', '')
             conf.set('Environment', 'StickerURL', '')
+            conf.set('Environment', 'LVInfoMessage', '')
             conf.set('Environment', 'AccessWebVerificationGuild', '')
             conf.add_section('FlaskSetting')
             conf.set('FlaskSetting', 'FlaskSecretKey', '')
