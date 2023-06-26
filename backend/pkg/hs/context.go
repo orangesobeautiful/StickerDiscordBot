@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+
+	"golang.org/x/text/language"
 )
 
 var ctxPool = sync.Pool{
@@ -16,6 +18,8 @@ var ctxPool = sync.Pool{
 type Context struct {
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
+
+	langTag language.Tag
 }
 
 // newContext return a new Context
@@ -49,4 +53,8 @@ func (ctx *Context) writeJSON(data any) error {
 	w := ctx.ResponseWriter
 	enc := json.NewEncoder(w)
 	return enc.Encode(data)
+}
+
+func (ctx *Context) GetLangTag() language.Tag {
+	return ctx.langTag
 }

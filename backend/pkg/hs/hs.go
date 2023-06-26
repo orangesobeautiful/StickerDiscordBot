@@ -2,10 +2,15 @@ package hs
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/text/language"
 )
 
 type typeHandle struct {
@@ -16,18 +21,34 @@ type typeHandle struct {
 
 // Engine is the http server engine
 type Engine struct {
-	router *httprouter.Router
+	router      *httprouter.Router
+	validate    *validator.Validate
+	langMatcher language.Matcher
 }
 
 // New create a new Engine
-func New() *Engine {
-	return &Engine{
-		router: httprouter.New(),
+func New() (*Engine, error) {
+	validate, err := NewDefaultValidate()
+	if err != nil {
+		return nil, err
 	}
+
+	return &Engine{
+		router:      httprouter.New(),
+		validate:    validate,
+		langMatcher: defaultLanguageMatcher(),
+	}, nil
+}
+
+func defaultLanguageMatcher() language.Matcher {
+	return language.NewMatcher([]language.Tag{
+		language.English,
+	})
 }
 
 func handleFuncCheck(handle any) (
-	handleValue reflect.Value, handleInNum int, reqType reflect.Type, paramIdxMap, queryIdxMap map[string]typeHandle, respErrIdx int, respDataIdx int) {
+	handleValue reflect.Value, handleInNum int, reqType reflect.Type, paramIdxMap, queryIdxMap map[string]typeHandle, respErrIdx int, respDataIdx int,
+) {
 	handleValue = reflect.ValueOf(handle)
 	handleType := handleValue.Type()
 
@@ -132,7 +153,14 @@ func (e *Engine) Handle(method, path string, handle any) {
 	handleValue, handleInNum, reqType, paramIdxMap, queryIdxMap, respErrIdx, respDataIdx := handleFuncCheck(handle)
 
 	e.router.Handle(method, path, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// TODO: layz init langTag
+
+		lang, _ := r.Cookie("lang")
+		accept := r.Header.Get("Accept-Language")
+		tag, _ := language.MatchStrings(e.langMatcher, lang.String(), accept)
+
 		ctx := newContext(r, w)
+		ctx.langTag = tag
 		defer putContext(ctx)
 
 		in := make([]reflect.Value, 0, handleInNum)
@@ -145,9 +173,8 @@ func (e *Engine) Handle(method, path string, handle any) {
 
 			var err error
 			dec := json.NewDecoder(r.Body)
-			if err = dec.Decode(req); err != nil {
+			if err = dec.Decode(req); err != nil && !errors.Is(err, io.EOF) {
 				// request decode failed
-
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusBadRequest)
 				errResp := ErrResp{
@@ -197,6 +224,29 @@ func (e *Engine) Handle(method, path string, handle any) {
 						return
 					}
 				}
+			}
+
+			err = e.validate.Struct(req)
+			if err != nil {
+				trans, _ := uni.GetTranslator(ctx.GetLangTag().String())
+
+				valErrs, convOK := err.(validator.ValidationErrors)
+				if !convOK {
+					panic("validator error is not validator.ValidationErrors")
+				}
+				detailList := make([]string, 0, len(valErrs))
+				for _, valErr := range valErrs {
+					fmt.Println(valErr.Error())
+					detailList = append(detailList, valErr.Translate(trans))
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				errResp := ErrResp{
+					Message: "param of request validate failed",
+					Detail:  detailList,
+				}
+				_, _ = w.Write(errResp.ToJSONBytes())
+				return
 			}
 
 			in = append(in, reflect.ValueOf(req))

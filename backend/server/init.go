@@ -1,11 +1,12 @@
 package server
 
 import (
+	"net/http"
+
 	"backend/config"
 	"backend/controllers"
 	"backend/pkg/hs"
 	"backend/pkg/log"
-	"net/http"
 )
 
 var cfg config.CfgInfo
@@ -16,8 +17,12 @@ func Init() error {
 	cfg = config.GetCfg()
 
 	// init router
-	r := hs.New()
-	r.POST("/get-sticker-rand", controllers.GetStickerRand)
+	r, err := hs.New()
+	if err != nil {
+		log.Errorf("hs.New failed, err=%s", err)
+		return err
+	}
+	r.GET("/get-sticker-rand", controllers.GetStickerRand)
 
 	// start listen
 	log.Info("start listen at " + cfg.Server.Addr)
