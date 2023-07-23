@@ -61,7 +61,7 @@ export default {
   },
   methods: {
     async check_has_login() {
-      var path = "/sndata/has_login";
+      var path = "/has_login";
       var has_login;
       await this.$axios
         .get(path)
@@ -80,14 +80,14 @@ export default {
       };
     },
     getUserInfo() {
-      var path = "/sndata/user_info";
+      var path = "/user_info";
       this.$axios.get(path).then(res => {
         this.name = res.data.name;
         this.avatar_url = res.data.avatar_url;
       });
     },
     async logout() {
-      var path = "/sndata/logout";
+      var path = "/logout";
       await this.$axios
         .get(path)
         .then(() => {

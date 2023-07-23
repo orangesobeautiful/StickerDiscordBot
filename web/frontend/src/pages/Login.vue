@@ -58,7 +58,7 @@ export default {
   methods: {
     // 檢查是否登入過
     async check_has_login() {
-      var path = "/sndata/has_login";
+      var path = "/has_login";
       var has_login;
       await this.$axios
         .get(path)
@@ -72,7 +72,7 @@ export default {
     },
     // 獲取登入用認證碼
     get_valid_code() {
-      var path = "/sndata/get_login_code";
+      var path = "/gen_login_code";
       this.$axios.get(path).then(res => {
         this.login_code = res.data.code;
       });
@@ -82,7 +82,7 @@ export default {
     },
     // 檢查認證碼登入狀態
     chech_login() {
-      var path = "/sndata/check_login";
+      var path = "/check_login";
       this.$axios.get(path, { params: { code: this.login_code } }).then(res => {
         if (res.data.result == "1") {
           this.$router.push("/");
