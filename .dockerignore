@@ -1,0 +1,14 @@
+__pycache__
+
+setting.ini
+
+web/frontend/.quasar/
+web/frontend/.vscode/
+web/frontend/dist/
+web/frontend/node_modules/
+web/frontend/README.md
+
+backend/sticker-image
+backend/backend
+backend/setting.yaml
+backend/README.md

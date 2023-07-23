@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"backend/utils"
 
@@ -17,6 +19,20 @@ type CfgInfo struct {
 		ImgURL     string
 		SessionKey *struct {
 			UserAuth *sessionKeyInfo
+		}
+		Cookie *struct {
+			MaxAge   time.Duration
+			Secure   bool
+			HttpOnly bool
+			SameSite http.SameSite
+		}
+		CORS *struct {
+			AllowOrigins     []string
+			AllowMethods     []string
+			AllowHeaders     []string
+			ExposeHeaders    []string
+			AllowCredentials bool
+			MaxAge           time.Duration
 		}
 	}
 

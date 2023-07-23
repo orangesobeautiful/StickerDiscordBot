@@ -1,0 +1,27 @@
+debug: true
+server:
+  addr: 0.0.0.0:5000
+  imgURL: http://localhost:5000/sticker-image/
+  sessionKey:
+    userAuth:
+      # authenticationB64 need to be 32 or 64 bytes base64 encoded string
+      authenticationB64: <64 bytes base64 string>
+      # encryptionB64(optional) need to be 16, 24 or 32 bytes base64 encoded string
+      encryptionB64: <32 bytes base64 string>
+  cors:
+    allowOrigins: [http://localhost:8080, http://127.0.0.1:8080]
+    allowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+    allowHeaders: [Origin, Content-Length, Content-Type, Cookie ]
+    exposeHeaders: [Content-Length]
+    allowCredentials: true
+    maxAge: 12h
+  cookie:
+    maxAge: 30d
+    httpOnly: true
+    secure: false
+    # 1: Default, 2: Lax, 3: Strict, 4: None
+    sameSite: 4
+
+
+database:
+  dsn: <user>:<pwd>@tcp(<host>:<port>)/<db>?charset=utf8mb4&parseTime=True&loc=Local

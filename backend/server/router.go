@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"backend/pkg/ginext"
 	"backend/pkg/hserr"
@@ -11,6 +10,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/text/language"
@@ -22,29 +22,29 @@ func (s *Server) setGinRouter() {
 	s.setCORS()
 	s.setLangDeal()
 	s.setErrorHandler()
-	cookieStore := cookie.NewStore(s.cfg.Server.SessionKey.UserAuth.SessionKeyPair()...)
-	cookieStore.Options(sessions.Options{
-		Path:     "/api/web/v1",
-		Domain:   "localhost",
-		MaxAge:   60 * 60 * 24 * 30,
-		Secure:   false,
-		HttpOnly: false,
-		SameSite: http.SameSiteNoneMode,
+	sessStore := s.newSessStore()
+
+	// Serve frontend static files (SPA mode)
+	e.Use(static.Serve("/", static.LocalFile("public", false)))
+	e.NoRoute(func(ctx *gin.Context) {
+		ctx.File("public/index.html")
 	})
 
+	// Serve sticker image
 	e.Static("/sticker-image/", "sticker-image")
 
+	// Web API
 	webAPIGroup := e.Group("/api/web")
 	webAPIV1Group := webAPIGroup.Group("/v1")
 
 	publicGroup := webAPIV1Group
 	publicGroup.GET("/gen_login_code", ginext.Handler(s.ctrl.WebGenLoginCode))
 	publicGroup.GET("/check_login",
-		sessions.Sessions("user-auth", cookieStore),
+		sessions.Sessions("user-auth", sessStore),
 		ginext.BindHandler(s.ctrl.WebCheckLogin))
 
 	authRequiredRouter := webAPIV1Group.Use(
-		sessions.Sessions("user-auth", cookieStore), s.ctrl.WebUserAuthRequired)
+		sessions.Sessions("user-auth", sessStore), s.ctrl.WebUserAuthRequired)
 	authRequiredRouter.GET("/logout", ginext.Handler(s.ctrl.WebLogout))
 	authRequiredRouter.GET("/has_login", ginext.Handler(s.ctrl.WebHasLlogin))
 	authRequiredRouter.GET("/user_info", ginext.Handler(s.ctrl.WebSelfInfo))
@@ -54,18 +54,32 @@ func (s *Server) setGinRouter() {
 	authRequiredRouter.POST("/change_sn", ginext.BindHandler(s.ctrl.ChangeSticker))
 }
 
+func (s *Server) newSessStore() sessions.Store {
+	cookieStore := cookie.NewStore(s.cfg.Server.SessionKey.UserAuth.SessionKeyPair()...)
+	if s.cfg.Server.Cookie != nil {
+		cookieStore.Options(sessions.Options{
+			MaxAge:   int(s.cfg.Server.CORS.MaxAge.Seconds()),
+			Secure:   s.cfg.Server.Cookie.Secure,
+			HttpOnly: s.cfg.Server.Cookie.HttpOnly,
+			SameSite: s.cfg.Server.Cookie.SameSite,
+		})
+	}
+
+	return cookieStore
+}
+
 func (s *Server) setCORS() {
-	s.Engine.Use(
-		cors.New(cors.Config{
-			AllowOrigins: []string{"http://localhost:8080", "http://127.0.0.1:8080"},
-			AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-			AllowHeaders: []string{"Origin", "Content-Length", "Content-Type", "Cookie"},
-			ExposeHeaders: []string{
-				"Content-Length",
-			},
-			AllowCredentials: true,
-			MaxAge:           12 * time.Hour,
-		}))
+	if s.cfg.Server.CORS != nil {
+		s.Engine.Use(
+			cors.New(cors.Config{
+				AllowOrigins:     s.cfg.Server.CORS.AllowOrigins,
+				AllowMethods:     s.cfg.Server.CORS.AllowMethods,
+				AllowHeaders:     s.cfg.Server.CORS.AllowHeaders,
+				ExposeHeaders:    s.cfg.Server.CORS.ExposeHeaders,
+				AllowCredentials: s.cfg.Server.CORS.AllowCredentials,
+				MaxAge:           s.cfg.Server.CORS.MaxAge,
+			}))
+	}
 }
 
 func (s *Server) setLangDeal() {

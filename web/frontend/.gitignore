@@ -32,3 +32,6 @@ yarn-error.log*
 *.ntvs*
 *.njsproj
 *.sln
+
+# 個人環境
+.env.dev

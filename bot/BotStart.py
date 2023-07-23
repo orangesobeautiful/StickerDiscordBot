@@ -10,7 +10,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 from CommonFunction import StickerCommon
 import random
-from opencc import OpenCC
 
 # 頭像提供 https://www.thiswaifudoesnotexist.net/
 
