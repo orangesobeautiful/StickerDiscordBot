@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+    bot:
+        container_name: ourbot
+        build:
+            context: .
+            dockerfile: Dockerfile
+        networks:
+          - common
+        ports:
+          - 5000:5000
+        volumes:
+            - ./setting.ini:/app/setting.ini
+            - ./backend/setting.yaml:/app/setting.yaml
+            - ./backend/sticker-image:/app/sticker-image
+
+networks:
+  common:
+    external : true
+    driver: bridge
