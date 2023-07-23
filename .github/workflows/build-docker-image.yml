@@ -21,7 +21,7 @@ on:
   pull_request:
     branches: [ "master" ]
     paths:
-      - ".github/workflows/docker-image.yml.yml"
+      - ".github/workflows/build-docker-image.yml"
       - "backend/**"
       - "web/frontend/**"
       - ".containerignore"
