@@ -17,7 +17,9 @@
 .history/
 
 # 個人開發環境
+backend
 setting.yaml
+sticker-image/
 
 # Test binary, built with `go test -c`
 *.test

@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"log"
 	stdLog "log"
@@ -45,4 +46,5 @@ func Panic(v ...any) {
 
 func Panicf(format string, v ...any) {
 	panicLogger.Printf(format, v...)
+	panic(fmt.Sprintf(format, v...))
 }

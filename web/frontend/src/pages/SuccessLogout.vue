@@ -24,7 +24,7 @@ export default {
   methods: {
     // 檢查是否登入過
     async check_has_login() {
-      var path = "/sndata/has_login";
+      var path = "/has_login";
       var has_login;
       await this.$axios
         .get(path)

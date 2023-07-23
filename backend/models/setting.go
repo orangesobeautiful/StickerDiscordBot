@@ -1,9 +1,10 @@
 package models
 
 import (
+	"strconv"
+
 	"backend/models/sn"
 	"backend/pkg/log"
-	"strconv"
 )
 
 func initSetting() error {
@@ -13,9 +14,9 @@ func initSetting() error {
 	}
 	for name, defaultV := range defaultSetting {
 		info := new(BotInfo)
-		exist, err := info.FindByName(name)
+		exist, err := info.GetByName(name)
 		if err != nil {
-			log.Errorf("info.FindByName failed, err=%s", err)
+			log.Errorf("info.GetByName failed, err=%s", err)
 			return err
 		}
 		if !exist {
@@ -32,8 +33,8 @@ func initSetting() error {
 }
 
 type BotInfo struct {
-	Name  sn.SettingName `gorm:"name;primary_key"`
-	Value string         `gorm:"value;not null"`
+	Name  sn.SettingName `gorm:"column:name;primary_key"`
+	Value string         `gorm:"column:value;not null"`
 }
 
 // TableName 指定 Image 表格的名稱
@@ -41,7 +42,7 @@ func (BotInfo) TableName() string {
 	return "botinfo"
 }
 
-func (info *BotInfo) FindByName(name sn.SettingName) (bool, error) {
+func (info *BotInfo) GetByName(name sn.SettingName) (bool, error) {
 	res := db.Where(BotInfo{Name: name}).Find(info)
 	if res.Error != nil {
 		return false, res.Error
@@ -66,7 +67,7 @@ func (info *BotInfo) Update(value string) error {
 // BotPrefixGet 回傳 BotPrefix 的設定值
 func BotPrefixGet() (string, error) {
 	info := new(BotInfo)
-	if _, err := info.FindByName(sn.BotPrefix); err != nil {
+	if _, err := info.GetByName(sn.BotPrefix); err != nil {
 		return "", err
 	}
 
@@ -77,7 +78,7 @@ func BotPrefixGet() (string, error) {
 func BotPrefixSet(value string) error {
 	info := new(BotInfo)
 	info.Name = sn.BotPrefix
-	if _, err := info.FindByName(sn.BotPrefix); err != nil {
+	if _, err := info.GetByName(sn.BotPrefix); err != nil {
 		return err
 	}
 

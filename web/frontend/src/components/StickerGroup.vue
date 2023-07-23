@@ -83,7 +83,7 @@ export default {
       };
       this.img_list.forEach(this.detect_change);
       if (has_change) {
-        var path = "/sndata/change_sn";
+        var path = "/change_sn";
         this.$axios({
           method: "post",
           url: path,

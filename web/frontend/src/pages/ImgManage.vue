@@ -92,7 +92,7 @@ export default {
       // eslint-disable-next-line
       //console.log(this.get_stickers);
       //const path = "http://localhost:" + this.GLOBAL.BACKENDPORT.toString() + "/all_sticker";
-      var path = "/sndata/all_sticker";
+      var path = "/all_sticker";
       this.$axios
         .get(path, {
           params: {
@@ -139,7 +139,7 @@ export default {
       if (this.search_query == "") {
         this.get_stickers();
       } else {
-        var path = "/sndata/search";
+        var path = "/search";
         this.$axios
           .get(path, {
             params: {
@@ -148,6 +148,9 @@ export default {
           })
           .then(res => {
             var img_data = res.data.img_data;
+            if (img_data == null) {
+              img_data = [];
+            }
             for (var i = 0; i < img_data.length; i++) {
               img_data[i].sts.sort(function(a, b) {
                 return a.id - b.id;

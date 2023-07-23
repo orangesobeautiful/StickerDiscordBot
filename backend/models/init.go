@@ -2,23 +2,46 @@ package models
 
 import (
 	"database/sql"
+	stdLog "log"
+	"os"
+	"time"
 
 	"backend/config"
 	"backend/pkg/log"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-var db *gorm.DB
-var sqlDB *sql.DB
+var (
+	db    *gorm.DB
+	sqlDB *sql.DB
+)
 
-func Init() error {
+func Init(cfg *config.CfgInfo) error {
 	var err error
 
-	var cfg = config.GetCfg()
+	logLevel := logger.Silent
+	if cfg.Debug {
+		logLevel = logger.Info
+	}
 
-	db, err = gorm.Open(mysql.Open(cfg.Database.DSN), &gorm.Config{})
+	gormLogger := logger.New(
+		stdLog.New(os.Stdout, "\r\n", stdLog.LstdFlags), // io writer
+		logger.Config{
+			SlowThreshold:             time.Second, // Slow SQL threshold
+			LogLevel:                  logLevel,    // Log level
+			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
+			ParameterizedQueries:      false,       // Don't include params in the SQL log
+			Colorful:                  true,        // Disable color
+		},
+	)
+
+	db, err = gorm.Open(mysql.Open(cfg.Database.DSN),
+		&gorm.Config{
+			Logger: gormLogger,
+		})
 	if err != nil {
 		log.Errorf("gorm.Open failed, err=%s", err)
 		return err

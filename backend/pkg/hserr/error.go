@@ -1,4 +1,4 @@
-package hs
+package hserr
 
 import (
 	"bytes"
@@ -8,34 +8,46 @@ import (
 
 var quoteEscaper = strings.NewReplacer(`'`, `\'`, `"`, `\"`)
 
+// ErrInternalServerError internal server error
 var (
-	// ErrInternalServerError internal server error
 	ErrInternalServerError = NewErr(http.StatusInternalServerError, "internal server error")
+	ErrBadRequest          = NewErr(http.StatusBadRequest, "bad request")
+	ErrUnauthorized        = NewErr(http.StatusUnauthorized, "unauthorized")
 )
 
 // ErrResp is the error response
 type ErrResp struct {
-	Status  int
-	Message string
-	Detail  []string
+	HttpStatus int
+	Code       int
+	Message    string
+	Detail     []string
 }
 
 // NewErr create a new ErrResp
-func NewErr(status int, msg string, details ...string) *ErrResp {
+func NewErr(httpStatus int, msg string, details ...string) *ErrResp {
 	return &ErrResp{
-		Status:  status,
-		Message: msg,
-		Detail:  details,
+		HttpStatus: httpStatus,
+		Message:    msg,
+		Detail:     details,
+	}
+}
+
+func NewErrWithCode(httpStatus, code int, msg string, details ...string) *ErrResp {
+	return &ErrResp{
+		HttpStatus: httpStatus,
+		Code:       code,
+		Message:    msg,
+		Detail:     details,
 	}
 }
 
 // Error implement error interface
-func (e ErrResp) Error() string {
+func (e *ErrResp) Error() string {
 	return e.Message
 }
 
 // ToJSONBytes convert to json byte slice
-func (e ErrResp) ToJSONBytes() []byte {
+func (e *ErrResp) MarshalJSON() ([]byte, error) {
 	bf := bytes.NewBuffer(nil)
 	bf.WriteString(`{"Message":"`)
 	bf.WriteString(quoteEscaper.Replace(e.Message))
@@ -51,5 +63,5 @@ func (e ErrResp) ToJSONBytes() []byte {
 		bf.WriteByte('"')
 	}
 	bf.WriteString(`]}`)
-	return bf.Bytes()
+	return bf.Bytes(), nil
 }
