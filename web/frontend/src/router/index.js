@@ -8,8 +8,10 @@ import global_ from "../components/Global.vue";
 
 Vue.use(VueRouter);
 Vue.prototype.$axios = axios;
-Vue.prototype.$axios.defaults.withCredentials = true;
-Vue.prototype.$axios.defaults.baseURL = "http://localhost:5000/api/web/v1";
+Vue.prototype.$axios.defaults.baseURL = process.env.API_Base_URL;
+if (process.env.API_WITH_CREDENTIALS) {
+  Vue.prototype.$axios.defaults.withCredentials = true;
+}
 Vue.prototype.GLOBAL = global_;
 
 /*
