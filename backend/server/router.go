@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/text/language"
@@ -32,8 +33,16 @@ func (s *Server) setGinRouter() {
 		SameSite: http.SameSiteNoneMode,
 	})
 
+	// Serve frontend static files (SPA mode)
+	e.Use(static.Serve("/", static.LocalFile("public", false)))
+	e.NoRoute(func(ctx *gin.Context) {
+		ctx.File("public/index.html")
+	})
+
+	// Serve sticker image
 	e.Static("/sticker-image/", "sticker-image")
 
+	// Web API
 	webAPIGroup := e.Group("/api/web")
 	webAPIV1Group := webAPIGroup.Group("/v1")
 
