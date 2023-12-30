@@ -30,3 +30,12 @@ public
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# mock
+domain/mock
+
+# entgo
+app/ent/*
+!app/ent/schema
+!app/ent/generate.go
+
