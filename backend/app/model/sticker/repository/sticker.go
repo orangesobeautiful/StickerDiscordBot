@@ -71,7 +71,9 @@ func (r *stickerRepository) FindByName(ctx context.Context, name string) (result
 	return s, nil
 }
 
-func (r *stickerRepository) List(ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc) (result domain.ListStickerResult, err error) {
+func (r *stickerRepository) List(
+	ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc,
+) (result domain.ListStickerResult, err error) {
 	listOpts := domain.NewStickerListOption(opts...)
 
 	queryFilter := r.GetEntClient(ctx).Sticker.

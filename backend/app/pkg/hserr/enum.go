@@ -10,7 +10,7 @@ var (
 	ErrForbidden    = New(http.StatusForbidden, "forbidden")
 )
 
-func NewInternalError(err error, message string) error {
+func NewInternalError(err error, _ string) error {
 	return New(
 		http.StatusInternalServerError,
 		"internal server error",

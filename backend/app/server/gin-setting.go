@@ -119,7 +119,7 @@ func newSessStore(cfg *config.CfgInfo) sessions.Store {
 		cookieStore.Options(sessions.Options{
 			MaxAge:   int(cfg.Server.CORS.MaxAge.Seconds()),
 			Secure:   cfg.Server.Cookie.Secure,
-			HttpOnly: cfg.Server.Cookie.HttpOnly,
+			HttpOnly: cfg.Server.Cookie.HTTPOnly,
 			SameSite: cfg.Server.Cookie.SameSite,
 		})
 	}

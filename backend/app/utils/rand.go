@@ -2,20 +2,22 @@ package utils
 
 import (
 	"crypto/rand"
+	"fmt"
 	"log"
 	"strings"
 )
 
 func RandString(letters []byte, n int) string {
+	const maxLettersLen = 255
 	lettersLen := len(letters)
-	if lettersLen > 255 {
-		panic("letters length must less than 256")
+	if lettersLen > maxLettersLen {
+		panic(fmt.Sprintf("letters length must less than %d", maxLettersLen+1))
 	}
 
 	var mask byte
 	maskLen := 0
 	for lettersLen > 0 {
-		lettersLen = lettersLen >> 1
+		lettersLen >>= 1
 		maskLen++
 	}
 	mask = 1<<maskLen - 1

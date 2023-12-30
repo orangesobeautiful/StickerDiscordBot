@@ -3,7 +3,6 @@ package log
 import (
 	"fmt"
 	"io"
-	"log"
 	stdLog "log"
 	"os"
 )
@@ -15,7 +14,7 @@ var (
 )
 
 func Init() {
-	setLogger(os.Stderr, log.Ldate|log.Ltime|log.Lshortfile)
+	setLogger(os.Stderr, stdLog.Ldate|stdLog.Ltime|stdLog.Lshortfile)
 }
 
 func setLogger(out io.Writer, flag int) {

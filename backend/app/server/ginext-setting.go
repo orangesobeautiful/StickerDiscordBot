@@ -69,7 +69,7 @@ func setGinextErrorHandler(uniTranslator *ut.UniversalTranslator) {
 func ginHSERROutput(ctx *gin.Context, err error) {
 	var respErr hserr.ErrResp
 	if errors.As(err, &respErr) {
-		statusCode := respErr.HttpStatus()
+		statusCode := respErr.HTTPStatus()
 		if statusCode >= http.StatusInternalServerError && statusCode < 600 {
 			// TODO: use slog
 			log.Errorf("respErr=%+v", err)

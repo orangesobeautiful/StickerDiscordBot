@@ -15,7 +15,7 @@ type ErrResp interface {
 	MarshalJSON() ([]byte, error)
 
 	IsInternal() bool
-	HttpStatus() int
+	HTTPStatus() int
 	Message() string
 	Detail() []string
 }
@@ -35,7 +35,7 @@ func (e *noWrapErrResp) IsInternal() bool {
 	return e.isInternal
 }
 
-func (e *noWrapErrResp) HttpStatus() int {
+func (e *noWrapErrResp) HTTPStatus() int {
 	return e.httpStatus
 }
 

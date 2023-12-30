@@ -1,8 +1,5 @@
 package rr
 
-
-
-
 type SearchStickerReq struct {
 	Query string `form:"q" binding:"required"` // sticker name
 }

@@ -13,30 +13,41 @@ type sessionKeyInfo struct {
 }
 
 var (
-	authenticationFormatError = errors.New("authentication key must be 32 or 64 bytes base64 encoded string")
-	encryptionFormatError     = errors.New("encryption key must be 16, 24, or 32 bytes base64 encoded string")
+	errAuthenticationFormat = errors.New("authentication key must be 32 or 64 bytes base64 encoded string")
+	errEncryptionFormat     = errors.New("encryption key must be 16, 24, or 32 bytes base64 encoded string")
 )
 
 func (s *sessionKeyInfo) Preprocessing() error {
 	var err error
 	s.authentication, err = base64.StdEncoding.DecodeString(s.AuthenticationB64)
 	if err != nil {
-		return authenticationFormatError
+		return errAuthenticationFormat
 	}
+
+	const (
+		acceptAuthenticationLen1 = 32
+		acceptAuthenticationLen2 = 64
+	)
 	switch len(s.authentication) {
-	case 32, 64:
+	case acceptAuthenticationLen1, acceptAuthenticationLen2:
 	default:
-		return authenticationFormatError
+		return errAuthenticationFormat
 	}
 
 	s.encryption, err = base64.StdEncoding.DecodeString(s.EncryptionB64)
 	if err != nil {
-		return encryptionFormatError
+		return errEncryptionFormat
 	}
+
+	const (
+		acceptEncryptionLen1 = 16
+		acceptEncryptionLen2 = 24
+		acceptEncryptionLen3 = 32
+	)
 	switch len(s.encryption) {
-	case 0, 16, 24, 32:
+	case 0, acceptEncryptionLen1, acceptEncryptionLen2, acceptEncryptionLen3:
 	default:
-		return encryptionFormatError
+		return errEncryptionFormat
 	}
 
 	return nil

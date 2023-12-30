@@ -19,7 +19,7 @@ func NewStickerController(e *gin.Engine, stickerUsecase domain.StickerUsecase) {
 
 	e.POST("/sticker-images", ginext.BindHandler(ctrl.AddStickerImage))
 	e.GET("/stickers", ginext.BindHandler(ctrl.ListSticker))
-	e.DELETE("/stickers/:id", ginext.BindUriHandler(ctrl.DeleteSticker))
+	e.DELETE("/stickers/:id", ginext.BindURIHandler(ctrl.DeleteSticker))
 }
 
 func (c *stickerController) AddStickerImage(ctx *gin.Context, req *addImageReq) (*ginext.EmptyResp, error) {
@@ -34,8 +34,9 @@ func (c *stickerController) AddStickerImage(ctx *gin.Context, req *addImageReq) 
 func (c *stickerController) ListSticker(ctx *gin.Context, req listStickerReq) (*listStickerResp, error) {
 	offset := (req.Page - 1) * req.Limit
 
+	const maxImagePreviewLimit = 4
 	listOpts := []domain.StickerListOptionFunc{
-		domain.StickerListWithImages(4),
+		domain.StickerListWithImages(maxImagePreviewLimit),
 	}
 	if req.Search != "" {
 		listOpts = append(listOpts, domain.StickerListWithSearchName(req.Search))

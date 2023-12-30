@@ -30,7 +30,9 @@ func (s *discordUserUsecase) Create(ctx context.Context, discordID, channelID, n
 	return id, nil
 }
 
-func (s *discordUserUsecase) FindByDiscordAndChannelID(ctx context.Context, discordID, channelID string) (user *ent.DiscordUser, err error) {
+func (s *discordUserUsecase) FindByDiscordAndChannelID(
+	ctx context.Context, discordID, channelID string,
+) (user *ent.DiscordUser, err error) {
 	user, err = s.discordUserRepository.FindByDiscordAndChannelID(ctx, discordID, channelID)
 	if err != nil {
 		return nil, xerrors.Errorf(": %w", err)

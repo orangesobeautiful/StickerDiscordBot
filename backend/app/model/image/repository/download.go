@@ -59,7 +59,7 @@ func (r *imageRepository) downloadAndUploadToObjectStorage(
 			pw.CloseWithError(err)
 		}
 
-		_, err := io.Copy(w, downloadBody)
+		_, err = io.Copy(w, downloadBody)
 		if err != nil {
 			pw.CloseWithError(err)
 		}

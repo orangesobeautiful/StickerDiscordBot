@@ -38,19 +38,20 @@ func New(ctx context.Context, cfg *config.CfgInfo, client *ent.Client) (repo dom
 
 func (r *imageRepository) CreateWithURL(ctx context.Context, stickerID int, imageURL string) (id int, err error) {
 	err = r.WithTx(ctx, func(txCtx context.Context) error {
-		newImgID, err := r.create(txCtx, stickerID)
-		if err != nil {
-			return xerrors.Errorf("create image: %w", err)
+		var txErr error
+		newImgID, txErr := r.create(txCtx, stickerID)
+		if txErr != nil {
+			return xerrors.Errorf("create image: %w", txErr)
 		}
 
-		result, err := r.downloadAndUploadToObjectStorage(ctx, newImgID, imageURL)
-		if err != nil {
-			return xerrors.Errorf("download and upload to object storage: %w", err)
+		result, txErr := r.downloadAndUploadToObjectStorage(ctx, newImgID, imageURL)
+		if txErr != nil {
+			return xerrors.Errorf("download and upload to object storage: %w", txErr)
 		}
 
-		err = r.update(txCtx, newImgID, result.saveType, result.uploadKey, result.sha256Checksum)
-		if err != nil {
-			return xerrors.Errorf("update image: %w", err)
+		txErr = r.update(txCtx, newImgID, result.saveType, result.uploadKey, result.sha256Checksum)
+		if txErr != nil {
+			return xerrors.Errorf("update image: %w", txErr)
 		}
 
 		id = newImgID
@@ -96,7 +97,9 @@ func (r *imageRepository) GetBatch(ctx context.Context, ids ...int) (result []*e
 	return result, nil
 }
 
-func (r *imageRepository) GetImageDirectURL(ctx context.Context, saveType domain.ImgSaveType, uploadKey string) (result string) {
+func (r *imageRepository) GetImageDirectURL(
+	saveType domain.ImgSaveType, uploadKey string,
+) (result string) {
 	switch saveType {
 	case domain.ImgSaveTypeCloudfare:
 		return r.bucketBasics.GetObjectDirectURL(uploadKey)

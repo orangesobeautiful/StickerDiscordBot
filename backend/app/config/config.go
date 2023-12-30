@@ -23,7 +23,7 @@ type CfgInfo struct {
 		Cookie *struct {
 			MaxAge   time.Duration
 			Secure   bool
-			HttpOnly bool
+			HTTPOnly bool
 			SameSite http.SameSite
 		}
 		CORS *struct {

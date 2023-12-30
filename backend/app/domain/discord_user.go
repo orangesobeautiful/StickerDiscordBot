@@ -23,7 +23,7 @@ type DiscordWebLoginVerification struct {
 	userChannelID string
 }
 
-func NewDiscordWebLoginLoginVerification(code string, userDiscordID string, userChannelID string) *DiscordWebLoginVerification {
+func NewDiscordWebLoginLoginVerification(code, userDiscordID, userChannelID string) *DiscordWebLoginVerification {
 	return &DiscordWebLoginVerification{
 		code:          code,
 		userDiscordID: userDiscordID,

@@ -20,14 +20,14 @@ type bindType int
 
 const (
 	bindTypeShouldBind bindType = iota + 1
-	bindTypeShouldBindUri
+	bindTypeShouldBindURI
 )
 
 func (b bindType) GetShouldBindFunc(ctx *gin.Context) func(obj any) error {
 	switch b {
 	case bindTypeShouldBind:
 		return ctx.ShouldBind
-	case bindTypeShouldBindUri:
+	case bindTypeShouldBindURI:
 		return ctx.ShouldBindUri
 	}
 
@@ -43,12 +43,12 @@ func BindHandler[reqType any, respType any](
 	}
 }
 
-// BindUriHandler
-func BindUriHandler[reqType any, respType any](
+// BindURIHandler
+func BindURIHandler[reqType any, respType any](
 	h func(*gin.Context, reqType) (respType, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		bindDeal(ctx, bindTypeShouldBindUri, h)
+		bindDeal(ctx, bindTypeShouldBindURI, h)
 	}
 }
 

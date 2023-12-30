@@ -24,7 +24,7 @@ func New(stickerRepo domain.StickerRepository, imageRepo domain.ImageRepository)
 	}
 }
 
-func (s *stickerUsecase) AddImageByURL(ctx context.Context, name string, imageURL string) (err error) {
+func (s *stickerUsecase) AddImageByURL(ctx context.Context, name, imageURL string) (err error) {
 	stickerID, err := s.stickerRepository.CreateIfNotExist(ctx, name)
 	if err != nil {
 		return xerrors.Errorf("sticker creat if not exist: %w", err)
@@ -44,11 +44,14 @@ func (s *stickerUsecase) RandSelectImage(ctx context.Context, stickerName string
 		return nil, xerrors.Errorf("get sticker all image: %w", err)
 	}
 
+	//nolint:gosec // not for security purpose
 	randSelectIndex := rand.Intn(len(images))
 	return images[randSelectIndex], nil
 }
 
-func (s *stickerUsecase) ListStickers(ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc) (stickers domain.ListStickerResult, err error) {
+func (s *stickerUsecase) ListStickers(
+	ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc,
+) (stickers domain.ListStickerResult, err error) {
 	stickers, err = s.stickerRepository.List(ctx, offset, limit, opts...)
 	if err != nil {
 		return stickers, xerrors.Errorf(": %w", err)
@@ -56,7 +59,7 @@ func (s *stickerUsecase) ListStickers(ctx context.Context, offset, limit int, op
 
 	for _, sticker := range stickers.GetItems() {
 		for _, img := range sticker.Edges.Images {
-			img.SavePath = s.imageRepository.GetImageDirectURL(ctx, domain.ImgSaveType(img.SaveType), img.SavePath)
+			img.SavePath = s.imageRepository.GetImageDirectURL(domain.ImgSaveType(img.SaveType), img.SavePath)
 		}
 	}
 
