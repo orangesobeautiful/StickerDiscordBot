@@ -52,6 +52,9 @@ type CfgInfo struct {
 		AccessKeySecret string
 		PublicAccessURL string
 	}
+	Discord *struct {
+		Token string
+	}
 }
 
 type preprocessingInterface interface {

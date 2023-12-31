@@ -38,4 +38,5 @@ domain/mock
 app/ent/*
 !app/ent/schema
 !app/ent/generate.go
+!app/ent/extemplates
 

@@ -1,9 +1,8 @@
 package server
 
 import (
-	"context"
-
-	"backend/app/config"
+	domainresponse "backend/app/domain-response"
+	discordmessage "backend/app/model/discord-message"
 	discorduserrepo "backend/app/model/discorduser/repository"
 	discorduserusecase "backend/app/model/discorduser/usecase"
 	imagerepo "backend/app/model/image/repository"
@@ -11,12 +10,15 @@ import (
 	stickerdelivery "backend/app/model/sticker/delivery"
 	stickerrepo "backend/app/model/sticker/repository"
 	stickerusecase "backend/app/model/sticker/usecase"
+	discordcommand "backend/app/pkg/discord-command"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/xerrors"
 )
 
-func (s *Server) setModel(ctx context.Context, e *gin.Engine, cfg *config.CfgInfo) (err error) {
+func (s *Server) setModel(
+	e *gin.Engine, dcCmdRegister discordcommand.Register, rd *domainresponse.DomainResponse,
+) (dcMsgHandler discordmessage.HandlerInterface, err error) {
 	dcUserRepo := discorduserrepo.NewDiscordUser(s.dbClient)
 	dcUserWebLoginRepo := discorduserrepo.NewRedisDCWebLoginVerification(s.redisClient)
 	dcUserUsecase := discorduserusecase.NewDiscordUser(dcUserRepo)
@@ -24,16 +26,17 @@ func (s *Server) setModel(ctx context.Context, e *gin.Engine, cfg *config.CfgInf
 	_ = dcUserUsecase
 	_ = dcUserWebLoginUsecase
 
-	imageRepo, err := imagerepo.New(ctx, cfg, s.dbClient)
+	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {
-		return xerrors.Errorf("new image repo: %w", err)
+		return nil, xerrors.Errorf("new image repo: %w", err)
 	}
 	imageUsecase := imageusecase.New(imageRepo)
 	_ = imageUsecase
 
 	stickerRepo := stickerrepo.New(s.dbClient)
 	stickerUsecase := stickerusecase.New(stickerRepo, imageRepo)
-	stickerdelivery.NewStickerController(e, stickerUsecase)
+	stickerdelivery.Initialze(e, dcCmdRegister, stickerUsecase, rd)
 
-	return nil
+	dcMsgHandler = discordmessage.New(stickerUsecase, rd)
+	return dcMsgHandler, nil
 }

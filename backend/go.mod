@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.13
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.15.9
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.47.7
+	github.com/bwmarrin/discordgo v0.27.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/eko/gocache/lib/v4 v4.1.5
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1
@@ -65,6 +66,7 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect

@@ -33,7 +33,6 @@ type ImageRepository interface {
 	BaseEntRepoInterface
 	CreateWithURL(ctx context.Context, stickerID int, imageURL string) (id int, err error)
 	GetBatch(ctx context.Context, id ...int) (result []*ent.Image, err error)
-	GetImageDirectURL(saveType ImgSaveType, uploadKey string) (result string)
 	ListAllByStickerID(ctx context.Context, stickerID int) (result []*ent.Image, err error)
 	DeleteByImageEnt(ctx context.Context, images ...*ent.Image) (err error)
 }

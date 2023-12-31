@@ -1,7 +1,11 @@
 package delivery
 
 import (
+	"context"
+
 	"backend/app/domain"
+	domainresponse "backend/app/domain-response"
+	discordcommand "backend/app/pkg/discord-command"
 	"backend/app/pkg/ginext"
 
 	"github.com/gin-gonic/gin"
@@ -10,19 +14,23 @@ import (
 
 type stickerController struct {
 	stickerUsecase domain.StickerUsecase
+	rd             *domainresponse.DomainResponse
 }
 
-func NewStickerController(e *gin.Engine, stickerUsecase domain.StickerUsecase) {
+func Initialze(
+	e *gin.Engine, dcCmdRegister discordcommand.Register,
+	stickerUsecase domain.StickerUsecase, rd *domainresponse.DomainResponse,
+) {
 	ctrl := stickerController{
 		stickerUsecase: stickerUsecase,
+		rd:             rd,
 	}
 
-	e.POST("/sticker-images", ginext.BindHandler(ctrl.AddStickerImage))
-	e.GET("/stickers", ginext.BindHandler(ctrl.ListSticker))
-	e.DELETE("/stickers/:id", ginext.BindURIHandler(ctrl.DeleteSticker))
+	ctrl.RegisterGinRouter(e)
+	ctrl.RegisterDiscordCommand(dcCmdRegister)
 }
 
-func (c *stickerController) AddStickerImage(ctx *gin.Context, req *addImageReq) (*ginext.EmptyResp, error) {
+func (c *stickerController) AddStickerImage(ctx context.Context, req *addImageReq) (*ginext.EmptyResp, error) {
 	err := c.stickerUsecase.AddImageByURL(ctx, req.StickerName, req.ImageURL)
 	if err != nil {
 		return nil, xerrors.Errorf("add image by url: %w", err)
@@ -31,7 +39,7 @@ func (c *stickerController) AddStickerImage(ctx *gin.Context, req *addImageReq) 
 	return nil, nil
 }
 
-func (c *stickerController) ListSticker(ctx *gin.Context, req listStickerReq) (*listStickerResp, error) {
+func (c *stickerController) ListSticker(ctx context.Context, req listStickerReq) (*listStickerResp, error) {
 	offset := (req.Page - 1) * req.Limit
 
 	const maxImagePreviewLimit = 4
@@ -47,11 +55,11 @@ func (c *stickerController) ListSticker(ctx *gin.Context, req listStickerReq) (*
 		return nil, xerrors.Errorf("list stickers: %w", err)
 	}
 
-	resp := newlistStickerRespFromListResult(stickerReulst)
+	resp := c.newlistStickerRespFromListResult(stickerReulst)
 	return resp, nil
 }
 
-func (c *stickerController) DeleteSticker(ctx *gin.Context, req *deleteStickerReq) (*ginext.EmptyResp, error) {
+func (c *stickerController) DeleteSticker(ctx context.Context, req *deleteStickerReq) (*ginext.EmptyResp, error) {
 	err := c.stickerUsecase.Delete(ctx, req.ID)
 	if err != nil {
 		return nil, xerrors.Errorf("delete sticker: %w", err)

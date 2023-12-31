@@ -1,6 +1,7 @@
 package ginext
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,16 @@ func BindHandler[reqType any, respType any](
 	}
 }
 
+func BindHandlerWithStdCtx[reqType any, respType any](
+	h func(context.Context, reqType) (respType, error),
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		bindDeal(ctx, bindTypeShouldBind, func(c *gin.Context, req reqType) (respType, error) {
+			return h(ctx, req)
+		})
+	}
+}
+
 // BindURIHandler
 func BindURIHandler[reqType any, respType any](
 	h func(*gin.Context, reqType) (respType, error),
@@ -52,10 +63,29 @@ func BindURIHandler[reqType any, respType any](
 	}
 }
 
+func BindURIHandlerWithStdCtx[reqType any, respType any](
+	h func(context.Context, reqType) (respType, error),
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		bindDeal(ctx, bindTypeShouldBindURI, func(c *gin.Context, req reqType) (respType, error) {
+			return h(ctx, req)
+		})
+	}
+}
+
 // Handler
 func Handler[respType any](h func(*gin.Context) (respType, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		resp, err := h(ctx)
+		respDeal(ctx, resp, err)
+	}
+}
+
+func HandlerWithStdCtx[respType any](
+	h func(context.Context, *gin.Context) (respType, error),
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		resp, err := h(ctx, ctx)
 		respDeal(ctx, resp, err)
 	}
 }

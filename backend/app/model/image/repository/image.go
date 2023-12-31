@@ -3,12 +3,12 @@ package repository
 import (
 	"context"
 
-	"backend/app/config"
 	"backend/app/domain"
 	"backend/app/ent"
 	"backend/app/ent/image"
 	"backend/app/ent/sticker"
 	"backend/app/pkg/hserr"
+	objectstorage "backend/app/pkg/object-storage"
 
 	"golang.org/x/xerrors"
 )
@@ -17,20 +17,15 @@ var _ domain.ImageRepository = (*imageRepository)(nil)
 
 type imageRepository struct {
 	*domain.BaseEntRepo
-	bucketBasics *bucketBasics
+	objectOperator objectstorage.BucketObjectOperator
 }
 
-func New(ctx context.Context, cfg *config.CfgInfo, client *ent.Client) (repo domain.ImageRepository, err error) {
+func New(client *ent.Client, objectOperator objectstorage.BucketObjectOperator) (repo domain.ImageRepository, err error) {
 	bRepo := domain.NewBaseEntRepo(client)
 
-	bucketBasics, err := newBucketBasics(ctx, cfg)
-	if err != nil {
-		return nil, xerrors.Errorf("new s3: %w", err)
-	}
-
 	repo = &imageRepository{
-		BaseEntRepo:  bRepo,
-		bucketBasics: bucketBasics,
+		BaseEntRepo:    bRepo,
+		objectOperator: objectOperator,
 	}
 
 	return repo, nil
@@ -97,17 +92,6 @@ func (r *imageRepository) GetBatch(ctx context.Context, ids ...int) (result []*e
 	return result, nil
 }
 
-func (r *imageRepository) GetImageDirectURL(
-	saveType domain.ImgSaveType, uploadKey string,
-) (result string) {
-	switch saveType {
-	case domain.ImgSaveTypeCloudfare:
-		return r.bucketBasics.GetObjectDirectURL(uploadKey)
-	default:
-		return ""
-	}
-}
-
 func (r *imageRepository) update(
 	ctx context.Context,
 	id int,
@@ -157,7 +141,7 @@ func (r *imageRepository) DeleteByImageEnt(ctx context.Context, images ...*ent.I
 	for _, img := range images {
 		uploadKeys = append(uploadKeys, img.SavePath)
 	}
-	err = r.bucketBasics.DeleteObjects(ctx, uploadKeys...)
+	err = r.objectOperator.DeleteObjects(ctx, uploadKeys...)
 	if err != nil {
 		return hserr.NewInternalError(err, "delete objects")
 	}

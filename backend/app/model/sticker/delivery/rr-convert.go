@@ -2,7 +2,7 @@ package delivery
 
 import (
 	"backend/app/domain"
-	"backend/app/ent"
+	domainresponse "backend/app/domain-response"
 )
 
 type addImageReq struct {
@@ -21,53 +21,19 @@ type listStickerReq struct {
 type listStickerResp struct {
 	TotalCount int `json:"total_count"`
 
-	Stickers []*sticker `json:"stickers"`
+	Stickers []*domainresponse.Sticker `json:"stickers"`
 }
 
-func newlistStickerRespFromListResult(listResult domain.ListStickerResult) *listStickerResp {
+func (c *stickerController) newlistStickerRespFromListResult(listResult domain.ListStickerResult) *listStickerResp {
 	entSs := listResult.GetItems()
-	ss := make([]*sticker, len(entSs))
+	ss := make([]*domainresponse.Sticker, len(entSs))
 	for i, entS := range entSs {
-		ss[i] = newStickerEntSticker(entS)
+		ss[i] = c.rd.NewStickerFromEnt(entS)
 	}
 
 	return &listStickerResp{
 		TotalCount: listResult.GetTotal(),
 		Stickers:   ss,
-	}
-}
-
-type sticker struct {
-	ID int `json:"id"`
-
-	StickerName string `json:"sticker_name"`
-
-	Images []*image `json:"images"`
-}
-
-func newStickerEntSticker(s *ent.Sticker) *sticker {
-	imgs := make([]*image, len(s.Edges.Images))
-	for i, entImg := range s.Edges.Images {
-		imgs[i] = newImageFromEntImage(entImg)
-	}
-
-	return &sticker{
-		ID:          s.ID,
-		StickerName: s.Name,
-		Images:      imgs,
-	}
-}
-
-type image struct {
-	ID int `json:"id"`
-
-	URL string `json:"url"`
-}
-
-func newImageFromEntImage(img *ent.Image) *image {
-	return &image{
-		ID:  img.ID,
-		URL: img.SavePath,
 	}
 }
 

@@ -43,6 +43,9 @@ func (s *stickerUsecase) RandSelectImage(ctx context.Context, stickerName string
 	if err != nil {
 		return nil, xerrors.Errorf("get sticker all image: %w", err)
 	}
+	if len(images) == 0 {
+		return nil, nil
+	}
 
 	//nolint:gosec // not for security purpose
 	randSelectIndex := rand.Intn(len(images))
@@ -57,12 +60,6 @@ func (s *stickerUsecase) ListStickers(
 		return stickers, xerrors.Errorf(": %w", err)
 	}
 
-	for _, sticker := range stickers.GetItems() {
-		for _, img := range sticker.Edges.Images {
-			img.SavePath = s.imageRepository.GetImageDirectURL(domain.ImgSaveType(img.SaveType), img.SavePath)
-		}
-	}
-
 	return stickers, nil
 }
 
@@ -70,6 +67,9 @@ func (s *stickerUsecase) GetStickerAllImages(ctx context.Context, stickerName st
 	sticker, err := s.stickerRepository.FindByName(ctx, stickerName)
 	if err != nil {
 		return result, xerrors.Errorf("sticker find by id: %w", err)
+	}
+	if sticker == nil {
+		return nil, nil
 	}
 
 	result, err = s.imageRepository.ListAllByStickerID(ctx, sticker.ID)

@@ -2,25 +2,33 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"backend/app/config"
+	domainresponse "backend/app/domain-response"
 	"backend/app/ent"
+	discordmessage "backend/app/model/discord-message"
+	discordcommand "backend/app/pkg/discord-command"
 	"backend/app/pkg/log"
+	objectstorage "backend/app/pkg/object-storage"
 
 	"entgo.io/ent/dialect"
-	"github.com/gin-gonic/gin"
+	"github.com/bwmarrin/discordgo"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/xerrors"
 )
 
 type Server struct {
-	dbClient    *ent.Client
-	redisClient *redis.Client
-	hs          *http.Server
+	dbClient         *ent.Client
+	redisClient      *redis.Client
+	bucketHandler    objectstorage.BucketObjectHandler
+	hs               *http.Server
+	dcCommandManager discordcommand.Manager
+	dcSess           *discordgo.Session
 }
 
 func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
@@ -41,15 +49,24 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	if err != nil {
 		return xerrors.Errorf("new redis client: %w", err)
 	}
+	bucketHandler, err := objectstorage.NewBucketHandler(ctx, cfg)
+	if err != nil {
+		return xerrors.Errorf("new bucket handler: %w", err)
+	}
+	s.bucketHandler = bucketHandler
+	rd := domainresponse.New(bucketHandler)
+
+	dcCommandManager := discordcommand.New()
 
 	sessStore := newSessStore(cfg)
 	_ = sessStore
-	err = s.setModel(ctx, e, cfg)
+	dcMsgHandler, err := s.setModel(e, dcCommandManager, rd)
 	if err != nil {
 		return xerrors.Errorf("set model: %w", err)
 	}
+	s.dcCommandManager = dcCommandManager
 
-	err = s.run(e, cfg)
+	err = s.run(ctx, cfg, e, dcMsgHandler)
 	if err != nil {
 		return xerrors.Errorf("run: %w", err)
 	}
@@ -90,18 +107,97 @@ func (s *Server) initRedisClient(cfg *config.CfgInfo) error {
 	return nil
 }
 
-func (s *Server) run(e *gin.Engine, cfg *config.CfgInfo) error {
+func (s *Server) run(
+	ctx context.Context, cfg *config.CfgInfo, httpHandler http.Handler, dcMsgHandler discordmessage.HandlerInterface,
+) (err error) {
+	err = s.runDiscordBot(cfg, dcMsgHandler)
+	if err != nil {
+		return xerrors.Errorf("run discord bot: %w", err)
+	}
+
+	go func() {
+		runHTTPServerErr := s.runHTTPServer(cfg, httpHandler)
+		if runHTTPServerErr != nil {
+			slog.Error("run http server", slog.Any("err", runHTTPServerErr))
+		}
+	}()
+
+	<-ctx.Done()
+	err = s.Close()
+	if err != nil {
+		return xerrors.Errorf("close: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) runDiscordBot(cfg *config.CfgInfo, dcMsgHandler discordmessage.HandlerInterface) (err error) {
+	discordSess, err := discordgo.New("Bot " + cfg.Discord.Token)
+	if err != nil {
+		return xerrors.Errorf("new discord session: %w", err)
+	}
+	discordSess.AddHandler(func(s *discordgo.Session, m *discordgo.Ready) {
+		slog.Info(fmt.Sprintf("logged in as: %s#%s", s.State.User.Username, s.State.User.Discriminator))
+	})
+	discordSess.AddHandler(dcMsgHandler.GetHandler())
+
+	err = discordSess.Open()
+	if err != nil {
+		return xerrors.Errorf("discord session open: %w", err)
+	}
+	err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
+	if err != nil {
+		return xerrors.Errorf("register all command: %w", err)
+	}
+	discordSess.AddHandler(s.dcCommandManager.GetHandler())
+
+	s.dcSess = discordSess
+	return nil
+}
+
+func (s *Server) runHTTPServer(cfg *config.CfgInfo, httpHandler http.Handler) (err error) {
 	hs := http.Server{
 		Addr:        cfg.Server.Addr,
-		Handler:     e,
+		Handler:     httpHandler,
 		ReadTimeout: 60 * time.Second,
 	}
 	s.hs = &hs
 
 	slog.Info(fmt.Sprintf("server start at %s", cfg.Server.Addr))
-	err := s.hs.ListenAndServe()
-	if err != nil {
+	err = s.hs.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return xerrors.Errorf("server.ListenAndServe: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Server) Close() (err error) {
+	err = s.dcCommandManager.DeleteAllCommand(s.dcSess, "")
+	if err != nil {
+		return xerrors.Errorf("delete all command: %w", err)
+	}
+	err = s.dcSess.Close()
+	if err != nil {
+		return xerrors.Errorf("discord session close: %w", err)
+	}
+
+	const closeSererTimeout = 1 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), closeSererTimeout)
+	defer cancel()
+	err = s.hs.Shutdown(ctx)
+	if err != nil {
+		return xerrors.Errorf("http server shutdown: %w", err)
+	}
+
+	err = s.redisClient.Close()
+	if err != nil {
+		return xerrors.Errorf("redis client close: %w", err)
+	}
+
+	err = s.dbClient.Close()
+	if err != nil {
+		return xerrors.Errorf("db client close: %w", err)
 	}
 
 	return nil

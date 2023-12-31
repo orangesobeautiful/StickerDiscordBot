@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+	"os/signal"
 	"time"
 
 	"backend/app/config"
@@ -32,7 +34,9 @@ func main() {
 		log.Panicf("config.Init failed: %s", err)
 	}
 
-	err = server.NewAndRun(ctx, cfg)
+	signalCtx, stop := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	defer stop()
+	err = server.NewAndRun(signalCtx, cfg)
 	if err != nil {
 		log.Panicf("server.New failed: %s", err)
 	}

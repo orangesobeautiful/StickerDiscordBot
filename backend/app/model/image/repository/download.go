@@ -11,6 +11,7 @@ import (
 
 	"backend/app/domain"
 	"backend/app/pkg/hserr"
+	objectstorage "backend/app/pkg/object-storage"
 
 	"github.com/h2non/filetype"
 	"github.com/h2non/filetype/matchers"
@@ -73,9 +74,9 @@ func (r *imageRepository) downloadAndUploadToObjectStorage(
 			time.Now().Unix(),
 			downCheckResult.kind.Extension),
 	)
-	err = r.bucketBasics.Upload(ctx, uploadKey, pr,
-		PutObjectWithContentLength(downCheckResult.contentLen),
-		PutObjectWithContentType(downCheckResult.kind.MIME.Value),
+	err = r.objectOperator.Upload(ctx, uploadKey, pr,
+		objectstorage.PutObjectWithContentLength(downCheckResult.contentLen),
+		objectstorage.PutObjectWithContentType(downCheckResult.kind.MIME.Value),
 	)
 	if err != nil {
 		return nil, xerrors.Errorf("put object: %w", err)

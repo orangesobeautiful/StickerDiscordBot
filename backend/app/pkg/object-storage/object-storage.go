@@ -1,4 +1,4 @@
-package repository
+package objectstorage
 
 import (
 	"context"
@@ -17,7 +17,23 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type bucketBasics struct {
+type BucketObjectDataConverter interface {
+	GetObjectDirectURL(key string) (result string)
+}
+
+type BucketObjectOperator interface {
+	Upload(ctx context.Context, key string, bodyReader io.Reader, opts ...putObjectOptionFunc) (err error)
+	DeleteObjects(ctx context.Context, keys ...string) (err error)
+}
+
+type BucketObjectHandler interface {
+	BucketObjectDataConverter
+	BucketObjectOperator
+}
+
+var _ BucketObjectHandler = (*bucketHandler)(nil)
+
+type bucketHandler struct {
 	s3Client *s3.Client
 	uploader *manager.Uploader
 
@@ -26,7 +42,7 @@ type bucketBasics struct {
 	publicAccessURL *url.URL
 }
 
-func newBucketBasics(ctx context.Context, cfg *config.CfgInfo) (cli *bucketBasics, err error) {
+func NewBucketHandler(ctx context.Context, cfg *config.CfgInfo) (handler BucketObjectHandler, err error) {
 	publicAccessURL, err := url.Parse(cfg.ObjectStorage.PublicAccessURL)
 	if err != nil {
 		return nil, xerrors.Errorf("parse public access url: %w", err)
@@ -57,13 +73,13 @@ func newBucketBasics(ctx context.Context, cfg *config.CfgInfo) (cli *bucketBasic
 		u.BufferProvider = manager.NewBufferedReadSeekerWriteToPool(bufferSize)
 	})
 
-	bb := &bucketBasics{
+	bh := &bucketHandler{
 		s3Client:        s3Client,
 		uploader:        s3Uploader,
 		bucketName:      aws.String(cfg.ObjectStorage.BucketName),
 		publicAccessURL: publicAccessURL,
 	}
-	return bb, nil
+	return bh, nil
 }
 
 type putObjectOptionFunc func(*putObjectOption)
@@ -92,7 +108,7 @@ func PutObjectWithContentType(contentType string) putObjectOptionFunc {
 	}
 }
 
-func (b *bucketBasics) Upload(
+func (b *bucketHandler) Upload(
 	ctx context.Context,
 	key string, bodyReader io.Reader, opts ...putObjectOptionFunc,
 ) (err error) {
@@ -123,11 +139,11 @@ func (b *bucketBasics) Upload(
 	return nil
 }
 
-func (b *bucketBasics) GetObjectDirectURL(key string) (result string) {
+func (b *bucketHandler) GetObjectDirectURL(key string) (result string) {
 	return b.publicAccessURL.JoinPath(key).String()
 }
 
-func (b *bucketBasics) DeleteObjects(ctx context.Context, keys ...string) (err error) {
+func (b *bucketHandler) DeleteObjects(ctx context.Context, keys ...string) (err error) {
 	var ojbectIDs []types.ObjectIdentifier
 	for _, key := range keys {
 		ojbectIDs = append(ojbectIDs, types.ObjectIdentifier{
