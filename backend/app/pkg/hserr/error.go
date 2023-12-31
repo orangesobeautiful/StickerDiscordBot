@@ -1,7 +1,6 @@
 package hserr
 
 import (
-	"bytes"
 	"fmt"
 
 	"golang.org/x/xerrors"
@@ -12,17 +11,16 @@ var _ ErrResp = (*noWrapErrResp)(nil)
 type ErrResp interface {
 	error
 	xerrors.Formatter
-	MarshalJSON() ([]byte, error)
 
 	IsInternal() bool
 	HTTPStatus() int
-	Message() string
-	Detail() []string
+	GetMessage() string
+	GetDetails() []string
 }
 
 type noWrapErrResp struct {
-	message    string
-	details    []string
+	Message    string
+	Details    []string
 	isInternal bool
 	httpStatus int
 
@@ -39,31 +37,12 @@ func (e *noWrapErrResp) HTTPStatus() int {
 	return e.httpStatus
 }
 
-func (e *noWrapErrResp) Message() string {
-	return e.message
+func (e *noWrapErrResp) GetMessage() string {
+	return e.Message
 }
 
-func (e *noWrapErrResp) Detail() []string {
-	return e.details
-}
-
-func (e *noWrapErrResp) MarshalJSON() ([]byte, error) {
-	bf := bytes.NewBuffer(nil)
-	bf.WriteString(`{"Message":"`)
-	bf.WriteString(e.message)
-	bf.WriteString(`","Detail":[`)
-	if len(e.details) > 0 {
-		bf.WriteByte('"')
-		bf.WriteString(e.details[0])
-		bf.WriteByte('"')
-	}
-	for i := 1; i < len(e.details); i++ {
-		bf.WriteString(`,"`)
-		bf.WriteString(e.details[i])
-		bf.WriteByte('"')
-	}
-	bf.WriteString(`]}`)
-	return bf.Bytes(), nil
+func (e *noWrapErrResp) GetDetails() []string {
+	return e.Details
 }
 
 func (e *noWrapErrResp) Error() string {
@@ -73,9 +52,9 @@ func (e *noWrapErrResp) Error() string {
 func (e *noWrapErrResp) Format(s fmt.State, v rune) { xerrors.FormatError(e, s, v) }
 
 func (e *noWrapErrResp) FormatError(p xerrors.Printer) error {
-	p.Print(e.message)
-	if len(e.details) > 0 {
-		p.Printf(": %v", e.details[0])
+	p.Print(e.Message)
+	if len(e.Details) > 0 {
+		p.Printf(": %v", e.Details[0])
 	}
 
 	e.frame.Format(p)

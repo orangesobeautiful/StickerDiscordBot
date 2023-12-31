@@ -47,11 +47,9 @@ func BindHandler[reqType any, respType any](
 func BindHandlerWithStdCtx[reqType any, respType any](
 	h func(context.Context, reqType) (respType, error),
 ) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		bindDeal(ctx, bindTypeShouldBind, func(c *gin.Context, req reqType) (respType, error) {
-			return h(ctx, req)
-		})
-	}
+	return BindHandler(func(ctx *gin.Context, req reqType) (respType, error) {
+		return h(ctx, req)
+	})
 }
 
 // BindURIHandler
@@ -66,11 +64,9 @@ func BindURIHandler[reqType any, respType any](
 func BindURIHandlerWithStdCtx[reqType any, respType any](
 	h func(context.Context, reqType) (respType, error),
 ) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		bindDeal(ctx, bindTypeShouldBindURI, func(c *gin.Context, req reqType) (respType, error) {
-			return h(ctx, req)
-		})
-	}
+	return BindURIHandler(func(ctx *gin.Context, req reqType) (respType, error) {
+		return h(ctx, req)
+	})
 }
 
 // Handler

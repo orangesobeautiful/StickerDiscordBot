@@ -14,26 +14,18 @@ import (
 	"github.com/go-playground/locales/en_US"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"golang.org/x/text/language"
-	"golang.org/x/xerrors"
 )
 
-func newGinEngine(cfg *config.CfgInfo) (*gin.Engine, error) {
-	var err error
-
-	uni := newValidateTranslator()
-	err = setGinGlobal(uni)
-	if err != nil {
-		return nil, err
-	}
+func newGinEngine(cfg *config.CfgInfo, validate *validator.Validate, uni *ut.UniversalTranslator) *gin.Engine {
+	setGinGlobal(validate)
 	setGinextErrorHandler(uni)
 
 	e := gin.Default()
 	setGinLangDeal(e)
 	setGinCORS(e, cfg)
 
-	return e, nil
+	return e
 }
 
 func newValidateTranslator() *ut.UniversalTranslator {
@@ -43,33 +35,54 @@ func newValidateTranslator() *ut.UniversalTranslator {
 	return uni
 }
 
-func setGinGlobal(uni *ut.UniversalTranslator) (err error) {
-	err = setGinValidate(uni)
-	if err != nil {
-		return xerrors.Errorf("setGinValidate : %w", err)
-	}
-
-	return nil
+func setGinGlobal(validate *validator.Validate) {
+	setGinValidate(validate)
 }
 
-func setGinValidate(uni *ut.UniversalTranslator) error {
-	en, _ := uni.GetTranslator("en")
+type ginBindingValidator struct {
+	validate *validator.Validate
+}
 
-	validate := binding.Validator.Engine().(*validator.Validate)
-	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
-		transTag := field.Tag.Get("trans")
-		if transTag == "" {
-			return field.Name
-		}
-		return transTag
-	})
-
-	err := en_translations.RegisterDefaultTranslations(validate, en)
-	if err != nil {
-		return err
+// ValidateStruct receives any kind of type, but only performed struct or pointer to struct type.
+func (v *ginBindingValidator) ValidateStruct(obj any) error {
+	if obj == nil {
+		return nil
 	}
 
-	return nil
+	value := reflect.ValueOf(obj)
+	switch value.Kind() {
+	case reflect.Ptr:
+		return v.ValidateStruct(value.Elem().Interface())
+	case reflect.Struct:
+		return v.validateStruct(obj)
+	case reflect.Slice, reflect.Array:
+		count := value.Len()
+		validateRet := make(binding.SliceValidationError, 0)
+		for i := 0; i < count; i++ {
+			if err := v.ValidateStruct(value.Index(i).Interface()); err != nil {
+				validateRet = append(validateRet, err)
+			}
+		}
+		if len(validateRet) == 0 {
+			return nil
+		}
+		return validateRet
+	default:
+		return nil
+	}
+}
+
+// validateStruct receives struct type
+func (v *ginBindingValidator) validateStruct(obj any) error {
+	return v.validate.Struct(obj)
+}
+
+func (v *ginBindingValidator) Engine() any {
+	return v.validate
+}
+
+func setGinValidate(validate *validator.Validate) {
+	binding.Validator = &ginBindingValidator{validate: validate}
 }
 
 func setGinLangDeal(e *gin.Engine) {

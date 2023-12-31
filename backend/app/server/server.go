@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"time"
 
 	"backend/app/config"
@@ -13,11 +14,13 @@ import (
 	"backend/app/ent"
 	discordmessage "backend/app/model/discord-message"
 	discordcommand "backend/app/pkg/discord-command"
-	"backend/app/pkg/log"
 	objectstorage "backend/app/pkg/object-storage"
 
 	"entgo.io/ent/dialect"
 	"github.com/bwmarrin/discordgo"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/xerrors"
 )
@@ -34,11 +37,13 @@ type Server struct {
 func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	var err error
 
-	e, err := newGinEngine(cfg)
+	uni := newValidateTranslator()
+	validate, err := newValidate(uni)
 	if err != nil {
-		log.Errorf("newEngine failed, err=%s", err)
-		return err
+		return xerrors.Errorf("new validate: %w", err)
 	}
+
+	e := newGinEngine(cfg, validate, uni)
 
 	s := new(Server)
 	err = s.initDBClient(cfg)
@@ -56,6 +61,8 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	s.bucketHandler = bucketHandler
 	rd := domainresponse.New(bucketHandler)
 
+	discordcommand.Validate = validate
+	discordcommand.UniTranslator = uni
 	dcCommandManager := discordcommand.New()
 
 	sessStore := newSessStore(cfg)
@@ -201,4 +208,25 @@ func (s *Server) Close() (err error) {
 	}
 
 	return nil
+}
+
+func newValidate(uni *ut.UniversalTranslator) (*validator.Validate, error) {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	validate.SetTagName("binding")
+
+	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
+		transTag := field.Tag.Get("trans")
+		if transTag == "" {
+			return field.Name
+		}
+		return transTag
+	})
+
+	en, _ := uni.GetTranslator("en")
+	err := en_translations.RegisterDefaultTranslations(validate, en)
+	if err != nil {
+		return nil, err
+	}
+
+	return validate, nil
 }

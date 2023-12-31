@@ -7,7 +7,8 @@ import (
 
 type addImageReq struct {
 	StickerName string `json:"sticker_name" binding:"required"`
-	ImageURL    string `json:"image_url" binding:"required,http_url"`
+
+	ImageURL string `json:"image_url" binding:"required,http_url"`
 }
 
 type listStickerReq struct {

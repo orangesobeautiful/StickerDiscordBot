@@ -52,8 +52,8 @@ func New(code int, msg string, opts ...NewOption) error {
 	callerSkip := 1 + int(o.extraCallerSkip)
 
 	result := noWrapErrResp{
-		message:    msg,
-		details:    o.details,
+		Message:    msg,
+		Details:    o.details,
 		isInternal: o.isInternal,
 		httpStatus: code,
 		err:        o.err,
