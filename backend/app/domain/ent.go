@@ -10,7 +10,7 @@ import (
 )
 
 type BaseEntRepoInterface interface {
-	WithTx(ctx context.Context, fn func(txCtx context.Context) error) error
+	WithTx(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
 var _ BaseEntRepoInterface = (*BaseEntRepo)(nil)

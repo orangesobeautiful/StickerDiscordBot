@@ -32,9 +32,9 @@ func New(client *ent.Client, objectOperator objectstorage.BucketObjectOperator) 
 }
 
 func (r *imageRepository) CreateWithURL(ctx context.Context, stickerID int, imageURL string) (id int, err error) {
-	err = r.WithTx(ctx, func(txCtx context.Context) error {
+	err = r.WithTx(ctx, func(ctx context.Context) error {
 		var txErr error
-		newImgID, txErr := r.create(txCtx, stickerID)
+		newImgID, txErr := r.create(ctx, stickerID)
 		if txErr != nil {
 			return xerrors.Errorf("create image: %w", txErr)
 		}
@@ -44,7 +44,7 @@ func (r *imageRepository) CreateWithURL(ctx context.Context, stickerID int, imag
 			return xerrors.Errorf("download and upload to object storage: %w", txErr)
 		}
 
-		txErr = r.update(txCtx, newImgID, result.saveType, result.uploadKey, result.sha256Checksum)
+		txErr = r.update(ctx, newImgID, result.saveType, result.uploadKey, result.sha256Checksum)
 		if txErr != nil {
 			return xerrors.Errorf("update image: %w", txErr)
 		}
