@@ -20,9 +20,8 @@ func (s *Server) newDCCommandManager(validate *validator.Validate, eh *errHandle
 }
 
 func setDcCommandValidateErrConverter(eh *errHandler) {
+	bindErrConverter := eh.getBindErrConvert("en")
 	discordcommand.ValidateErrorConvert = func(err error) error {
-		bindErrConverter := eh.getBindErrConvert("en_US")
-
 		return bindErrConverter(err)
 	}
 }

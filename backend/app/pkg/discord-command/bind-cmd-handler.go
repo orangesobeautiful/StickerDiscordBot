@@ -34,7 +34,6 @@ func genDiscordCommandHandler[reqType any, respType any](
 
 		err = Validate.Struct(newReq)
 		if err != nil {
-			err = xerrors.Errorf("validate: %w", err)
 			if ValidateErrorConvert != nil {
 				err = ValidateErrorConvert(err)
 			}
