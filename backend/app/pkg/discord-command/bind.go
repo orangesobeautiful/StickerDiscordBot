@@ -3,7 +3,6 @@ package discordcommand
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-playground/locales/en_US"
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -13,7 +12,6 @@ var (
 	ExternalValidateTagName = "binding"
 
 	enLocalesTranslator = en_US.New()
-	UniTranslator       = ut.New(enLocalesTranslator)
 
 	Validate = validator.New(validator.WithRequiredStructEnabled())
 )

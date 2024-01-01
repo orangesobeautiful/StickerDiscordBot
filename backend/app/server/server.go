@@ -18,6 +18,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"github.com/bwmarrin/discordgo"
+	"github.com/go-playground/locales/en_US"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
@@ -37,15 +38,19 @@ type Server struct {
 func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	var err error
 
+	s := new(Server)
+
 	uni := newValidateTranslator()
 	validate, err := newValidate(uni)
 	if err != nil {
 		return xerrors.Errorf("new validate: %w", err)
 	}
 
-	e := newGinEngine(cfg, validate, uni)
+	eh := newErrHandler(uni)
 
-	s := new(Server)
+	e := newGinEngine(cfg, validate, eh)
+	s.initDCCommandManager(validate, eh)
+
 	err = s.initDBClient(cfg)
 	if err != nil {
 		return xerrors.Errorf("new db client: %w", err)
@@ -61,17 +66,12 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	s.bucketHandler = bucketHandler
 	rd := domainresponse.New(bucketHandler)
 
-	discordcommand.Validate = validate
-	discordcommand.UniTranslator = uni
-	dcCommandManager := discordcommand.New()
-
 	sessStore := newSessStore(cfg)
 	_ = sessStore
-	dcMsgHandler, err := s.setModel(e, dcCommandManager, rd)
+	dcMsgHandler, err := s.setModel(e, s.dcCommandManager, rd)
 	if err != nil {
 		return xerrors.Errorf("set model: %w", err)
 	}
-	s.dcCommandManager = dcCommandManager
 
 	err = s.run(ctx, cfg, e, dcMsgHandler)
 	if err != nil {
@@ -79,6 +79,13 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	}
 
 	return nil
+}
+
+func newValidateTranslator() *ut.UniversalTranslator {
+	english := en_US.New()
+	uni := ut.New(english, english)
+
+	return uni
 }
 
 func (s *Server) initDBClient(cfg *config.CfgInfo) error {

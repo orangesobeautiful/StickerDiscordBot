@@ -11,28 +11,19 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/locales/en_US"
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/text/language"
 )
 
-func newGinEngine(cfg *config.CfgInfo, validate *validator.Validate, uni *ut.UniversalTranslator) *gin.Engine {
+func newGinEngine(cfg *config.CfgInfo, validate *validator.Validate, eh *errHandler) *gin.Engine {
 	setGinGlobal(validate)
-	setGinextErrorHandler(uni)
+	setGinextErrorHandler(eh)
 
 	e := gin.Default()
 	setGinLangDeal(e)
 	setGinCORS(e, cfg)
 
 	return e
-}
-
-func newValidateTranslator() *ut.UniversalTranslator {
-	english := en_US.New()
-	uni := ut.New(english, english)
-
-	return uni
 }
 
 func setGinGlobal(validate *validator.Validate) {
