@@ -1,8 +1,13 @@
 package delivery
 
 import (
+	"fmt"
+
 	"backend/app/domain"
 	domainresponse "backend/app/domain-response"
+	discordcommand "backend/app/pkg/discord-command"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type addImageReq struct {
@@ -18,6 +23,8 @@ type listStickerReq struct {
 
 	Search string `form:"search"`
 }
+
+var _ discordcommand.DiscordWebhookParamsMarshaler = (*listStickerResp)(nil)
 
 type listStickerResp struct {
 	TotalCount int `json:"total_count"`
@@ -36,6 +43,31 @@ func (c *stickerController) newlistStickerRespFromListResult(listResult domain.L
 		TotalCount: listResult.GetTotal(),
 		Stickers:   ss,
 	}
+}
+
+func (l *listStickerResp) MarshalDiscordWebhookParams() *discordgo.WebhookParams {
+	result := new(discordgo.WebhookParams)
+
+	result.Content = "貼圖列表"
+
+	for _, s := range l.Stickers {
+		stickerEmbedTitle := fmt.Sprintf("%d: %s", s.ID, s.StickerName)
+
+		for _, img := range s.Images {
+			imgEmbed := &discordgo.MessageEmbed{
+				Type:  discordgo.EmbedTypeImage,
+				Title: stickerEmbedTitle,
+				URL:   fmt.Sprintf("https://%d.for.display.multiple.images.in.a.single.embed", s.ID),
+				Image: &discordgo.MessageEmbedImage{
+					URL: img.URL,
+				},
+			}
+
+			result.Embeds = append(result.Embeds, imgEmbed)
+		}
+	}
+
+	return result
 }
 
 type deleteStickerReq struct {

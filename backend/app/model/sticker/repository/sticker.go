@@ -90,7 +90,7 @@ func (r *stickerRepository) List(
 		imgLimit := listOpts.GetWithImagesLimit()
 		queryFilter = queryFilter.WithImages(func(imgQuery *ent.ImageQuery) {
 			if imgLimit != 0 {
-				imgQuery.Limit(int(imgLimit))
+				imgQuery.Limit(int(imgLimit) * limit)
 			}
 		})
 	}

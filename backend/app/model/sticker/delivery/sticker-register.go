@@ -23,4 +23,12 @@ func (c *stickerController) RegisterDiscordCommand(dcCmdRegister discordcommand.
 		},
 	)
 	dcCmdRegister.MustAdd(dcCmd, dcCmdHandler)
+
+	dcCmd, dcCmdHandler = discordcommand.DiscordCommandRegister(
+		"sticker-list", "列出貼圖",
+		func(req listStickerReq) (*listStickerResp, error) {
+			return c.ListSticker(context.Background(), req)
+		},
+	)
+	dcCmdRegister.MustAdd(dcCmd, dcCmdHandler)
 }
