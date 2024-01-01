@@ -67,3 +67,12 @@ func (c *stickerController) DeleteSticker(ctx context.Context, req *deleteSticke
 
 	return nil, nil
 }
+
+func (c *stickerController) DeleteStickerByName(ctx context.Context, req *deleteStickerByNameReq) (*ginext.EmptyResp, error) {
+	err := c.stickerUsecase.DeleteByName(ctx, req.Name)
+	if err != nil {
+		return nil, xerrors.Errorf("delete sticker by name: %w", err)
+	}
+
+	return nil, nil
+}

@@ -39,4 +39,12 @@ func (c *stickerController) RegisterDiscordCommand(dcCmdRegister discordcommand.
 		},
 	)
 	dcCmdRegister.MustAdd(dcCmd, dcCmdHandler)
+
+	dcCmd, dcCmdHandler = discordcommand.DiscordCommandRegister(
+		"sticker-delete-by-name", "刪除貼圖",
+		func(req *deleteStickerByNameReq) (*ginext.EmptyResp, error) {
+			return c.DeleteStickerByName(context.Background(), req)
+		},
+	)
+	dcCmdRegister.MustAdd(dcCmd, dcCmdHandler)
 }

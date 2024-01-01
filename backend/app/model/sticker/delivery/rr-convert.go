@@ -73,3 +73,7 @@ func (l *listStickerResp) MarshalDiscordWebhookParams() *discordgo.WebhookParams
 type deleteStickerReq struct {
 	ID int `uri:"id" binding:"required,gte=0"`
 }
+
+type deleteStickerByNameReq struct {
+	Name string `json:"name" binding:"required"`
+}

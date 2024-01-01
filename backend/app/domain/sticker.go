@@ -25,4 +25,5 @@ type StickerUsecase interface {
 	GetStickerAllImages(ctx context.Context, stickerName string) (result []*ent.Image, err error)
 
 	Delete(ctx context.Context, id ...int) (err error)
+	DeleteByName(ctx context.Context, name string) (err error)
 }

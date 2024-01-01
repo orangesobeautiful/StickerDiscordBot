@@ -3,9 +3,11 @@ package usecase
 import (
 	"context"
 	"math/rand"
+	"net/http"
 
 	"backend/app/domain"
 	"backend/app/ent"
+	"backend/app/pkg/hserr"
 
 	"golang.org/x/xerrors"
 )
@@ -104,6 +106,23 @@ func (s *stickerUsecase) Delete(ctx context.Context, ids ...int) (err error) {
 		if err != nil {
 			return xerrors.Errorf("sticker delete: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (s *stickerUsecase) DeleteByName(ctx context.Context, name string) (err error) {
+	sticker, err := s.stickerRepository.FindByName(ctx, name)
+	if err != nil {
+		return xerrors.Errorf("sticker find by name: %w", err)
+	}
+	if sticker == nil {
+		return hserr.New(http.StatusBadRequest, "sticker not exist")
+	}
+
+	err = s.Delete(ctx, sticker.ID)
+	if err != nil {
+		return xerrors.Errorf("delete: %w", err)
 	}
 
 	return nil
