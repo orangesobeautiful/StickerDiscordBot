@@ -86,10 +86,11 @@ func (s *stickerUsecase) Delete(ctx context.Context, ids ...int) (err error) {
 		if err != nil {
 			return xerrors.Errorf("image list all by sticker id: %w", err)
 		}
-
-		err = s.imageRepository.DeleteByImageEnt(ctx, images...)
-		if err != nil {
-			return xerrors.Errorf("image delete: %w", err)
+		if len(images) > 0 {
+			err = s.imageRepository.DeleteByImageEnt(ctx, images...)
+			if err != nil {
+				return xerrors.Errorf("image delete: %w", err)
+			}
 		}
 
 		err = s.stickerRepository.Delete(ctx, ids...)
