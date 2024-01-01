@@ -25,14 +25,21 @@ func New(stickerRepo domain.StickerRepository, imageRepo domain.ImageRepository)
 }
 
 func (s *stickerUsecase) AddImageByURL(ctx context.Context, name, imageURL string) (err error) {
-	stickerID, err := s.stickerRepository.CreateIfNotExist(ctx, name)
-	if err != nil {
-		return xerrors.Errorf("sticker creat if not exist: %w", err)
-	}
+	err = s.stickerRepository.WithTx(ctx, func(txCtx context.Context) error {
+		stickerID, txErr := s.stickerRepository.CreateIfNotExist(txCtx, name)
+		if txErr != nil {
+			return xerrors.Errorf("sticker creat if not exist: %w", txErr)
+		}
 
-	_, err = s.imageRepository.CreateWithURL(ctx, stickerID, imageURL)
+		_, txErr = s.imageRepository.CreateWithURL(txCtx, stickerID, imageURL)
+		if txErr != nil {
+			return xerrors.Errorf("image create: %w", txErr)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return xerrors.Errorf("image create: %w", err)
+		return xerrors.Errorf(": %w", err)
 	}
 
 	return nil
