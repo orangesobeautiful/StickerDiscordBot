@@ -7,8 +7,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -115,18 +113,4 @@ func setGinCORS(e *gin.Engine, cfg *config.CfgInfo) {
 				MaxAge:           cfg.Server.CORS.MaxAge,
 			}))
 	}
-}
-
-func newSessStore(cfg *config.CfgInfo) sessions.Store {
-	cookieStore := cookie.NewStore(cfg.Server.SessionKey.UserAuth.SessionKeyPair()...)
-	if cfg.Server.Cookie != nil {
-		cookieStore.Options(sessions.Options{
-			MaxAge:   int(cfg.Server.CORS.MaxAge.Seconds()),
-			Secure:   cfg.Server.Cookie.Secure,
-			HttpOnly: cfg.Server.Cookie.HTTPOnly,
-			SameSite: cfg.Server.Cookie.SameSite,
-		})
-	}
-
-	return cookieStore
 }

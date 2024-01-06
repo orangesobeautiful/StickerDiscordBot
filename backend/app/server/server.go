@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -22,6 +23,8 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
+	"github.com/google/uuid"
+	"github.com/gorilla/sessions"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/xerrors"
 )
@@ -59,6 +62,10 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	if err != nil {
 		return xerrors.Errorf("new redis client: %w", err)
 	}
+	sessStore := s.newSessStore(cfg)
+	if err != nil {
+		return xerrors.Errorf("new session store: %w", err)
+	}
 	bucketHandler, err := objectstorage.NewBucketHandler(ctx, cfg)
 	if err != nil {
 		return xerrors.Errorf("new bucket handler: %w", err)
@@ -66,9 +73,7 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 	s.bucketHandler = bucketHandler
 	rd := domainresponse.New(bucketHandler)
 
-	sessStore := newSessStore(cfg)
-	_ = sessStore
-	dcMsgHandler, err := s.setModel(e, s.dcCommandManager, rd)
+	dcMsgHandler, err := s.setModel(sessStore, e, s.dcCommandManager, rd)
 	if err != nil {
 		return xerrors.Errorf("set model: %w", err)
 	}
@@ -119,6 +124,22 @@ func (s *Server) initRedisClient(cfg *config.CfgInfo) error {
 
 	s.redisClient = client
 	return nil
+}
+
+func (s *Server) newSessStore(cfg *config.CfgInfo) sessions.Store {
+	gob.Register(uuid.UUID{})
+
+	cookieStore := sessions.NewCookieStore(cfg.Server.SessionKey.UserAuth.SessionKeyPair()...)
+	if cfg.Server.Cookie != nil {
+		cookieStore.Options = &sessions.Options{
+			MaxAge:   int(cfg.Server.CORS.MaxAge.Seconds()),
+			Secure:   cfg.Server.Cookie.Secure,
+			HttpOnly: cfg.Server.Cookie.HTTPOnly,
+			SameSite: cfg.Server.Cookie.SameSite,
+		}
+	}
+
+	return cookieStore
 }
 
 func (s *Server) run(

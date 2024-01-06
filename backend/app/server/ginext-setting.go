@@ -31,18 +31,25 @@ func ginHSERROutput(ctx *gin.Context, err error) {
 	if errors.As(err, &respErr) {
 		statusCode := respErr.HTTPStatus()
 		if statusCode >= http.StatusInternalServerError && statusCode < 600 {
-			// TODO: use slog
-			log.Errorf("respErr=%+v", err)
+			logErrorMessage(err)
 		}
 
 		ctx.JSON(statusCode, respErr)
 		return
 	}
 
-	ctx.JSON(http.StatusInternalServerError, hserr.New(
+	err = hserr.New(
 		http.StatusInternalServerError,
 		"unknown error",
 		hserr.WithDetails(err.Error()),
 		hserr.WithIsInternal(),
-	))
+	)
+	logErrorMessage(err)
+
+	ctx.JSON(http.StatusInternalServerError, err)
+}
+
+func logErrorMessage(err error) {
+	// TODO: use slog
+	log.Errorf("respErr=%+v", err)
 }

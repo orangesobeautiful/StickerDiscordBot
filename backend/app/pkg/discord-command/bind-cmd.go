@@ -56,6 +56,9 @@ func genDiscordApplicationCommandOptions[reqType any]() ([]*discordgo.Applicatio
 			if decodeResult.required != nil {
 				required = *decodeResult.required
 			}
+			if decodeResult.ignore {
+				continue
+			}
 		}
 		if description == "" {
 			description = name
@@ -113,6 +116,7 @@ type decodeDiscordCommandTagResult struct {
 	name        *string
 	description *string
 	required    *bool
+	ignore      bool
 }
 
 func decodeDiscordCommandTag(tag string) (result decodeDiscordCommandTagResult) {
@@ -128,6 +132,9 @@ func decodeDiscordCommandTag(tag string) (result decodeDiscordCommandTagResult) 
 		case s == "required":
 			required := true
 			result.required = &required
+		case s == "ignore":
+			result.ignore = true
+			return
 		}
 	}
 

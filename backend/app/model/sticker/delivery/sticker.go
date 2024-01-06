@@ -5,6 +5,7 @@ import (
 
 	"backend/app/domain"
 	domainresponse "backend/app/domain-response"
+	ginauth "backend/app/model/discorduser/gin-auth"
 	discordcommand "backend/app/pkg/discord-command"
 	"backend/app/pkg/ginext"
 
@@ -13,17 +14,21 @@ import (
 )
 
 type stickerController struct {
-	stickerUsecase domain.StickerUsecase
+	auth           ginauth.AuthInterface
 	rd             *domainresponse.DomainResponse
+	stickerUsecase domain.StickerUsecase
 }
 
 func Initialze(
 	e *gin.Engine, dcCmdRegister discordcommand.Register,
-	stickerUsecase domain.StickerUsecase, rd *domainresponse.DomainResponse,
+	auth ginauth.AuthInterface,
+	rd *domainresponse.DomainResponse,
+	stickerUsecase domain.StickerUsecase,
 ) {
 	ctrl := stickerController{
-		stickerUsecase: stickerUsecase,
+		auth:           auth,
 		rd:             rd,
+		stickerUsecase: stickerUsecase,
 	}
 
 	ctrl.RegisterGinRouter(e)

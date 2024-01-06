@@ -1,11 +1,43 @@
 package discordcommand
 
 import (
+	"fmt"
 	"reflect"
+	"runtime/debug"
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/xerrors"
 )
+
+type InteractionCreateExtraParser interface {
+	InteractionCreateExtraParse(*discordgo.InteractionCreate) error
+}
+
+var _ InteractionCreateExtraParser = (*BaseAuthInteractionCreate)(nil)
+
+type BaseAuthInteractionCreate struct {
+	UserID string
+
+	GuildID string
+
+	ChannelID string
+
+	Name string
+
+	NickName string
+
+	AvatarURL string
+}
+
+func (b *BaseAuthInteractionCreate) InteractionCreateExtraParse(i *discordgo.InteractionCreate) (err error) {
+	b.UserID = i.Member.User.ID
+	b.GuildID = i.GuildID
+	b.ChannelID = i.ChannelID
+	b.Name = i.Member.User.Username
+	b.NickName = i.Member.Nick
+	b.AvatarURL = i.Member.User.AvatarURL("")
+	return nil
+}
 
 func genDiscordCommandHandler[reqType any, respType any](
 	reqParseMap parseMap, h func(reqType) (respType, error),
@@ -15,6 +47,9 @@ func genDiscordCommandHandler[reqType any, respType any](
 
 		defer func() {
 			if r := recover(); r != nil {
+				fmt.Printf("\npanic: %+v\n", r)
+				debug.PrintStack()
+
 				err = xerrors.Errorf("panic: %+v", r)
 			}
 			if err != nil {
@@ -22,7 +57,11 @@ func genDiscordCommandHandler[reqType any, respType any](
 			}
 		}()
 
-		newReq := newReqAndBindDiscordCommandOptions[reqType](i.ApplicationCommandData().Options, reqParseMap)
+		newReq, err := newReqAndBindDiscordCommandOptions[reqType](i, reqParseMap)
+		if err != nil {
+			err = xerrors.Errorf("new req and bind discord command options: %w", err)
+			return
+		}
 
 		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
@@ -58,8 +97,10 @@ func genDiscordCommandHandler[reqType any, respType any](
 }
 
 func newReqAndBindDiscordCommandOptions[reqType any](
-	options []*discordgo.ApplicationCommandInteractionDataOption, reqParseMap parseMap,
-) (newReq reqType) {
+	i *discordgo.InteractionCreate, reqParseMap parseMap,
+) (newReq reqType, err error) {
+	options := i.ApplicationCommandData().Options
+
 	var reqTypeIsPtr bool
 	var reqReflectValue reflect.Value
 	if reflect.TypeOf(newReq).Kind() == reflect.Ptr {
@@ -87,7 +128,14 @@ func newReqAndBindDiscordCommandOptions[reqType any](
 		newReq = reqReflectValue.Interface().(reqType)
 	}
 
-	return newReq
+	if extraParser, ok := any(newReq).(InteractionCreateExtraParser); ok {
+		err = extraParser.InteractionCreateExtraParse(i)
+		if err != nil {
+			return newReq, xerrors.Errorf("extra parser: %w", err)
+		}
+	}
+
+	return newReq, nil
 }
 
 func doFinishedResponse(s *discordgo.Session, i *discordgo.InteractionCreate, resp any) (err error) {

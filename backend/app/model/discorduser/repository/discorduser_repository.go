@@ -8,6 +8,8 @@ import (
 	"backend/app/ent"
 	"backend/app/ent/discorduser"
 	"backend/app/pkg/hserr"
+
+	"entgo.io/ent/dialect/sql"
 )
 
 var _ domain.DiscordUserRepository = (*discordUserRepository)(nil)
@@ -24,34 +26,42 @@ func NewDiscordUser(client *ent.Client) domain.DiscordUserRepository {
 	}
 }
 
-func (r *discordUserRepository) Create(ctx context.Context, discordID, channelID, name, avatarURL string) (int, error) {
-	du, err := r.GetEntClient(ctx).DiscordUser.
+func (r *discordUserRepository) Upsert(ctx context.Context, discordID, guildID, name, avatarURL string) (id int, err error) {
+	id, err = r.GetEntClient(ctx).DiscordUser.
 		Create().
 		SetDiscordID(discordID).
-		SetChannelID(channelID).
+		SetGuildID(guildID).
 		SetName(name).
 		SetAvatarURL(avatarURL).
-		Save(ctx)
+		OnConflict(
+			sql.ConflictColumns(discorduser.FieldDiscordID, discorduser.FieldGuildID),
+			sql.ResolveWithNewValues(),
+		).
+		Update(func(duu *ent.DiscordUserUpsert) {
+			duu.SetName(name)
+			duu.SetAvatarURL(avatarURL)
+		}).
+		ID(ctx)
 	if err != nil {
-		return 0, hserr.NewInternalError(err, "create discord user")
+		return 0, hserr.NewInternalError(err, "upsert discord user")
 	}
 
-	return du.ID, nil
+	return id, nil
 }
 
-func (r *discordUserRepository) FindByDiscordAndChannelID(ctx context.Context, discordID, channelID string) (*ent.DiscordUser, error) {
+func (r *discordUserRepository) FindByDiscordAndGuildlID(ctx context.Context, discordID, guildID string) (*ent.DiscordUser, error) {
 	du, err := r.GetEntClient(ctx).DiscordUser.
 		Query().
 		Where(
 			discorduser.DiscordID(discordID),
-			discorduser.ChannelID(channelID),
+			discorduser.GuildID(guildID),
 		).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, hserr.NewInternalError(err, fmt.Sprintf("query discord user, discordID=%s, channelID=%s", discordID, channelID))
+		return nil, hserr.NewInternalError(err, fmt.Sprintf("query discord user, discordID=%s, guildID=%s", discordID, guildID))
 	}
 
 	return du, nil

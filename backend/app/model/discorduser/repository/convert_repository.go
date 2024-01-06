@@ -8,6 +8,8 @@ func convertDCWebLoginVerifyInfo(code string, info dcWebLoginVerifyInfo) *domain
 	return domain.NewDiscordWebLoginLoginVerification(
 		code,
 		info.DCUserID,
-		info.DCChannelID,
+		info.DCGuildlID,
+		info.DCName,
+		info.DCAvatarURL,
 	)
 }

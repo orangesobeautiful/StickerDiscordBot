@@ -17,6 +17,10 @@ func SetRespErrHandler(h func(*gin.Context, error)) {
 	respErrHandler = h
 }
 
+func GetRespErrHandler() func(*gin.Context, error) {
+	return respErrHandler
+}
+
 type bindType int
 
 const (
@@ -78,12 +82,11 @@ func Handler[respType any](h func(*gin.Context) (respType, error)) gin.HandlerFu
 }
 
 func HandlerWithStdCtx[respType any](
-	h func(context.Context, *gin.Context) (respType, error),
+	h func(ctx context.Context) (respType, error),
 ) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		resp, err := h(ctx, ctx)
-		respDeal(ctx, resp, err)
-	}
+	return Handler(func(ctx *gin.Context) (respType, error) {
+		return h(ctx)
+	})
 }
 
 func bindDeal[reqType any, respType any](

@@ -10,9 +10,11 @@ import (
 )
 
 func (c *stickerController) RegisterGinRouter(e *gin.Engine) {
-	e.POST("/sticker-images", ginext.BindHandlerWithStdCtx(c.AddStickerImage))
-	e.GET("/stickers", ginext.BindHandlerWithStdCtx(c.ListSticker))
-	e.DELETE("/stickers/:id", ginext.BindURIHandlerWithStdCtx(c.DeleteSticker))
+	authMiddleware := c.auth.GetRequiredAuthMiddleware()
+
+	e.POST("/sticker-images", authMiddleware, ginext.BindHandlerWithStdCtx(c.AddStickerImage))
+	e.GET("/stickers", authMiddleware, ginext.BindHandlerWithStdCtx(c.ListSticker))
+	e.DELETE("/stickers/:id", authMiddleware, ginext.BindURIHandlerWithStdCtx(c.DeleteSticker))
 }
 
 func (c *stickerController) RegisterDiscordCommand(dcCmdRegister discordcommand.Register) {
