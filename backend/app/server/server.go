@@ -38,7 +38,7 @@ type Server struct {
 	dcSess           *discordgo.Session
 }
 
-func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
+func NewAndRun(ctx context.Context, cfg config.Config) error {
 	var err error
 
 	s := new(Server)
@@ -51,22 +51,25 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 
 	eh := newErrHandler(uni)
 
-	e := newGinEngine(cfg, validate, eh)
+	e := newGinEngine(cfg.GetServer().GetCORS(), validate, eh)
 	s.initDCCommandManager(validate, eh)
 
-	err = s.initDBClient(cfg)
+	err = s.initDBClient(cfg.GetDatabase())
 	if err != nil {
 		return xerrors.Errorf("new db client: %w", err)
 	}
-	err = s.initRedisClient(cfg)
+	err = s.initRedisClient(cfg.GetRedis())
 	if err != nil {
 		return xerrors.Errorf("new redis client: %w", err)
 	}
-	sessStore := s.newSessStore(cfg)
+	sessStore := s.newSessStore(
+		cfg.GetServer().GetSessionKey().GetUserAuth(),
+		cfg.GetServer().GetCookie(),
+	)
 	if err != nil {
 		return xerrors.Errorf("new session store: %w", err)
 	}
-	bucketHandler, err := objectstorage.NewBucketHandler(ctx, cfg)
+	bucketHandler, err := objectstorage.NewBucketHandler(ctx, cfg.GetObjectStorage())
 	if err != nil {
 		return xerrors.Errorf("new bucket handler: %w", err)
 	}
@@ -78,7 +81,7 @@ func NewAndRun(ctx context.Context, cfg *config.CfgInfo) error {
 		return xerrors.Errorf("set model: %w", err)
 	}
 
-	err = s.run(ctx, cfg, e, dcMsgHandler)
+	err = s.run(ctx, cfg.GetServer(), cfg.GetDiscord(), e, dcMsgHandler)
 	if err != nil {
 		return xerrors.Errorf("run: %w", err)
 	}
@@ -93,13 +96,13 @@ func newValidateTranslator() *ut.UniversalTranslator {
 	return uni
 }
 
-func (s *Server) initDBClient(cfg *config.CfgInfo) error {
-	dbClient, err := ent.Open(dialect.Postgres, cfg.Database.DSN)
+func (s *Server) initDBClient(dbCfg config.Database) error {
+	dbClient, err := ent.Open(dialect.Postgres, dbCfg.GetDSN())
 	if err != nil {
 		return xerrors.Errorf("open db connection: %w", err)
 	}
 
-	if cfg.Database.AutoMigrate {
+	if dbCfg.GetAutoMigrate() {
 		if err := dbClient.Schema.Create(context.Background()); err != nil {
 			return xerrors.Errorf("auto migrate: %w", err)
 		}
@@ -109,12 +112,12 @@ func (s *Server) initDBClient(cfg *config.CfgInfo) error {
 	return nil
 }
 
-func (s *Server) initRedisClient(cfg *config.CfgInfo) error {
+func (s *Server) initRedisClient(redisCfg config.Redis) error {
 	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr,
-		Username: cfg.Redis.Username,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+		Addr:     redisCfg.GetAddr(),
+		Username: redisCfg.GetUsername(),
+		Password: redisCfg.GetPassword(),
+		DB:       redisCfg.GetDB(),
 	})
 
 	_, err := client.Ping(context.Background()).Result()
@@ -126,16 +129,16 @@ func (s *Server) initRedisClient(cfg *config.CfgInfo) error {
 	return nil
 }
 
-func (s *Server) newSessStore(cfg *config.CfgInfo) sessions.Store {
+func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.Cookie) sessions.Store {
 	gob.Register(uuid.UUID{})
 
-	cookieStore := sessions.NewCookieStore(cfg.Server.SessionKey.UserAuth.SessionKeyPair()...)
-	if cfg.Server.Cookie != nil {
+	cookieStore := sessions.NewCookieStore(sessionKeyCfg.SessionKeyPair()...)
+	if cookieCfg != nil {
 		cookieStore.Options = &sessions.Options{
-			MaxAge:   int(cfg.Server.CORS.MaxAge.Seconds()),
-			Secure:   cfg.Server.Cookie.Secure,
-			HttpOnly: cfg.Server.Cookie.HTTPOnly,
-			SameSite: cfg.Server.Cookie.SameSite,
+			MaxAge:   int(cookieCfg.GetMaxAge().Seconds()),
+			Secure:   cookieCfg.GetSecure(),
+			HttpOnly: cookieCfg.GetHTTPOnly(),
+			SameSite: cookieCfg.GetSameSite(),
 		}
 	}
 
@@ -143,15 +146,15 @@ func (s *Server) newSessStore(cfg *config.CfgInfo) sessions.Store {
 }
 
 func (s *Server) run(
-	ctx context.Context, cfg *config.CfgInfo, httpHandler http.Handler, dcMsgHandler discordmessage.HandlerInterface,
+	ctx context.Context, serverCfg config.Server, dcCfg config.Discord, httpHandler http.Handler, dcMsgHandler discordmessage.HandlerInterface,
 ) (err error) {
-	err = s.runDiscordBot(cfg, dcMsgHandler)
+	err = s.runDiscordBot(dcCfg, dcMsgHandler)
 	if err != nil {
 		return xerrors.Errorf("run discord bot: %w", err)
 	}
 
 	go func() {
-		runHTTPServerErr := s.runHTTPServer(cfg, httpHandler)
+		runHTTPServerErr := s.runHTTPServer(serverCfg, httpHandler)
 		if runHTTPServerErr != nil {
 			slog.Error("run http server", slog.Any("err", runHTTPServerErr))
 		}
@@ -166,8 +169,8 @@ func (s *Server) run(
 	return nil
 }
 
-func (s *Server) runDiscordBot(cfg *config.CfgInfo, dcMsgHandler discordmessage.HandlerInterface) (err error) {
-	discordSess, err := discordgo.New("Bot " + cfg.Discord.Token)
+func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage.HandlerInterface) (err error) {
+	discordSess, err := discordgo.New("Bot " + dcCfg.GetToken())
 	if err != nil {
 		return xerrors.Errorf("new discord session: %w", err)
 	}
@@ -190,15 +193,16 @@ func (s *Server) runDiscordBot(cfg *config.CfgInfo, dcMsgHandler discordmessage.
 	return nil
 }
 
-func (s *Server) runHTTPServer(cfg *config.CfgInfo, httpHandler http.Handler) (err error) {
+func (s *Server) runHTTPServer(serverCfg config.Server, httpHandler http.Handler) (err error) {
+	serverAddr := serverCfg.GetAddr()
 	hs := http.Server{
-		Addr:        cfg.Server.Addr,
+		Addr:        serverAddr,
 		Handler:     httpHandler,
 		ReadTimeout: 60 * time.Second,
 	}
 	s.hs = &hs
 
-	slog.Info(fmt.Sprintf("server start at %s", cfg.Server.Addr))
+	slog.Info(fmt.Sprintf("server start at %s", serverAddr))
 	err = s.hs.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return xerrors.Errorf("server.ListenAndServe: %w", err)

@@ -13,13 +13,13 @@ import (
 	"golang.org/x/text/language"
 )
 
-func newGinEngine(cfg *config.CfgInfo, validate *validator.Validate, eh *errHandler) *gin.Engine {
+func newGinEngine(corsCfg config.CORS, validate *validator.Validate, eh *errHandler) *gin.Engine {
 	setGinGlobal(validate)
 	setGinextErrorHandler(eh)
 
 	e := gin.Default()
 	setGinLangDeal(e)
-	setGinCORS(e, cfg)
+	setGinCORS(e, corsCfg)
 
 	return e
 }
@@ -90,12 +90,12 @@ func setGinLangDeal(e *gin.Engine) {
 	})
 }
 
-func setGinCORS(e *gin.Engine, cfg *config.CfgInfo) {
-	if cfg.Server.CORS != nil {
+func setGinCORS(e *gin.Engine, corsCfg config.CORS) {
+	if corsCfg != nil {
 		var allowOriginFunc func(origin string) bool
-		if len(cfg.Server.CORS.AllowOrigins) > 0 {
+		if len(corsCfg.GetAllowOrigins()) > 0 {
 			allowOriginSet := mapset.NewSet[string]()
-			for _, origin := range cfg.Server.CORS.AllowOrigins {
+			for _, origin := range corsCfg.GetAllowOrigins() {
 				allowOriginSet.Add(origin)
 			}
 			allowOriginFunc = func(origin string) bool {
@@ -106,11 +106,11 @@ func setGinCORS(e *gin.Engine, cfg *config.CfgInfo) {
 		e.Use(
 			cors.New(cors.Config{
 				AllowOriginFunc:  allowOriginFunc,
-				AllowMethods:     cfg.Server.CORS.AllowMethods,
-				AllowHeaders:     cfg.Server.CORS.AllowHeaders,
-				ExposeHeaders:    cfg.Server.CORS.ExposeHeaders,
-				AllowCredentials: cfg.Server.CORS.AllowCredentials,
-				MaxAge:           cfg.Server.CORS.MaxAge,
+				AllowMethods:     corsCfg.GetAllowMethods(),
+				AllowHeaders:     corsCfg.GetAllowHeaders(),
+				ExposeHeaders:    corsCfg.GetExposeHeaders(),
+				AllowCredentials: corsCfg.GetAllowCredentials(),
+				MaxAge:           corsCfg.GetMaxAge(),
 			}))
 	}
 }

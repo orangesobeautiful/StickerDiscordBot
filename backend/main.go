@@ -29,7 +29,7 @@ func main() {
 		log.Panicf("utils.Init failed: %s", err)
 	}
 
-	cfg, err := config.Init()
+	cfg, err := config.New()
 	if err != nil {
 		log.Panicf("config.Init failed: %s", err)
 	}

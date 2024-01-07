@@ -42,18 +42,18 @@ type bucketHandler struct {
 	publicAccessURL *url.URL
 }
 
-func NewBucketHandler(ctx context.Context, cfg *config.CfgInfo) (handler BucketObjectHandler, err error) {
-	publicAccessURL, err := url.Parse(cfg.ObjectStorage.PublicAccessURL)
+func NewBucketHandler(ctx context.Context, objectStorageCfg config.ObjectStorage) (handler BucketObjectHandler, err error) {
+	publicAccessURL, err := url.Parse(objectStorageCfg.GetPublicAccessURL())
 	if err != nil {
 		return nil, xerrors.Errorf("parse public access url: %w", err)
 	}
 
-	accessKeyID := cfg.ObjectStorage.AccessKeyID
-	accessKeySecret := cfg.ObjectStorage.AccessKeySecret
+	accessKeyID := objectStorageCfg.GetAccessKeyID()
+	accessKeySecret := objectStorageCfg.GetAccessKeySecret()
 
 	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
-			URL: cfg.ObjectStorage.Endpoint,
+			URL: objectStorageCfg.GetEndpoint(),
 		}, nil
 	})
 
@@ -76,7 +76,7 @@ func NewBucketHandler(ctx context.Context, cfg *config.CfgInfo) (handler BucketO
 	bh := &bucketHandler{
 		s3Client:        s3Client,
 		uploader:        s3Uploader,
-		bucketName:      aws.String(cfg.ObjectStorage.BucketName),
+		bucketName:      aws.String(objectStorageCfg.GetBucketName()),
 		publicAccessURL: publicAccessURL,
 	}
 	return bh, nil
