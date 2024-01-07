@@ -2,6 +2,7 @@ package server
 
 import (
 	domainresponse "backend/app/domain-response"
+	debugdelivery "backend/app/model/debug/delivery"
 	discordmessage "backend/app/model/discord-message"
 	discorduserdelivery "backend/app/model/discorduser/delivery"
 	ginauth "backend/app/model/discorduser/gin-auth"
@@ -29,6 +30,8 @@ func (s *Server) setModel(
 	dcUserWebLoginUsecase := discorduserusecase.NewDCWebUsecase(dcUserWebLoginRepo, dcUserRepo)
 	auth := ginauth.New(sessStore, dcUserWebLoginUsecase, ginauth.WithErrRespHandler(ginHSERROutput))
 	discorduserdelivery.Initialze(e, dcCmdRegister, auth, rd, dcUserWebLoginUsecase)
+
+	debugdelivery.Initialze(e, auth)
 
 	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {

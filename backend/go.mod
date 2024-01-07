@@ -4,6 +4,7 @@ go 1.21.4
 
 require (
 	entgo.io/ent v0.12.5
+	github.com/arl/statsviz v0.6.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
 	github.com/aws/aws-sdk-go-v2/config v1.26.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.13
@@ -15,6 +16,7 @@ require (
 	github.com/eko/gocache/store/go_cache/v4 v4.2.1
 	github.com/eko/gocache/store/redis/v4 v4.2.1
 	github.com/gin-contrib/cors v1.5.0
+	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
