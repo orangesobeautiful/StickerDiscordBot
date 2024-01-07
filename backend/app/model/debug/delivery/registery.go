@@ -6,11 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (c *debugController) RegisterGinRouter(e *gin.Engine) {
-	authGroup := e.Group("")
+func (c *debugController) RegisterGinRouter(apiGroup *gin.RouterGroup) {
+	authGroup := apiGroup.Group("")
 	authGroup.Use(c.auth.GetRequiredAuthMiddleware())
 
-	debugGroup := e.Group("/debug")
+	debugGroup := apiGroup.Group("/debug")
 
 	pprof.RouteRegister(debugGroup, "pprof")
 
@@ -20,7 +20,7 @@ func (c *debugController) RegisterGinRouter(e *gin.Engine) {
 func (c *debugController) registerStatsvizGinRouter(debugGroup *gin.RouterGroup) {
 	statsvizGroup := debugGroup.Group("/statsviz")
 
-	srv, err := statsviz.NewServer(statsviz.Root("/debug/statsviz"))
+	srv, err := statsviz.NewServer(statsviz.Root("/api/v1/debug/statsviz"))
 	if err != nil {
 		panic(err)
 	}

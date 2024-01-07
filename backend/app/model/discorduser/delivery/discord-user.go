@@ -21,7 +21,7 @@ type discorduserController struct {
 }
 
 func Initialze(
-	e *gin.Engine, dcCmdRegister discordcommand.Register,
+	apiGroup *gin.RouterGroup, dcCmdRegister discordcommand.Register,
 	auth ginauth.AuthInterface,
 	rd *domainresponse.DomainResponse,
 	dcWebLoginUsecase domain.DiscordWebLoginVerificationUsecase,
@@ -32,7 +32,7 @@ func Initialze(
 		dcWebLoginUsecase: dcWebLoginUsecase,
 	}
 
-	ctrl.RegisterGinRouter(e)
+	ctrl.RegisterGinRouter(apiGroup)
 	ctrl.RegisterDiscordCommand(dcCmdRegister)
 }
 

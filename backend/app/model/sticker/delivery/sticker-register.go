@@ -9,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (c *stickerController) RegisterGinRouter(e *gin.Engine) {
+func (c *stickerController) RegisterGinRouter(apiGroup *gin.RouterGroup) {
 	authMiddleware := c.auth.GetRequiredAuthMiddleware()
 
-	e.POST("/sticker-images", authMiddleware, ginext.BindHandlerWithStdCtx(c.AddStickerImage))
-	e.GET("/stickers", authMiddleware, ginext.BindHandlerWithStdCtx(c.ListSticker))
-	e.DELETE("/stickers/:id", authMiddleware, ginext.BindURIHandlerWithStdCtx(c.DeleteSticker))
+	apiGroup.POST("/sticker-images", authMiddleware, ginext.BindHandlerWithStdCtx(c.AddStickerImage))
+	apiGroup.GET("/stickers", authMiddleware, ginext.BindHandlerWithStdCtx(c.ListSticker))
+	apiGroup.DELETE("/stickers/:id", authMiddleware, ginext.BindURIHandlerWithStdCtx(c.DeleteSticker))
 }
 
 func (c *stickerController) RegisterDiscordCommand(dcCmdRegister discordcommand.Register) {

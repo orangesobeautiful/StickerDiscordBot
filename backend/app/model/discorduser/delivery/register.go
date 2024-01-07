@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (c *discorduserController) RegisterGinRouter(e *gin.Engine) {
+func (c *discorduserController) RegisterGinRouter(apiGroup *gin.RouterGroup) {
 	authRequiredMiddleware := c.auth.GetRequiredAuthMiddleware()
 
-	e.GET("/login-code", ginext.HandlerWithStdCtx(c.CreateLoginCode))
-	e.POST("/login-code", ginext.BindHandler(c.CheckLoginCode))
+	apiGroup.GET("/login-code", ginext.HandlerWithStdCtx(c.CreateLoginCode))
+	apiGroup.POST("/login-code", ginext.BindHandler(c.CheckLoginCode))
 
-	e.GET("/me", authRequiredMiddleware, ginext.Handler(c.GetSelfInfo))
+	apiGroup.GET("/me", authRequiredMiddleware, ginext.Handler(c.GetSelfInfo))
 }
 
 func (c *discorduserController) RegisterDiscordCommand(dcCmdRegister discordcommand.Register) {

@@ -20,7 +20,7 @@ type stickerController struct {
 }
 
 func Initialze(
-	e *gin.Engine, dcCmdRegister discordcommand.Register,
+	apiGroup *gin.RouterGroup, dcCmdRegister discordcommand.Register,
 	auth ginauth.AuthInterface,
 	rd *domainresponse.DomainResponse,
 	stickerUsecase domain.StickerUsecase,
@@ -31,7 +31,7 @@ func Initialze(
 		stickerUsecase: stickerUsecase,
 	}
 
-	ctrl.RegisterGinRouter(e)
+	ctrl.RegisterGinRouter(apiGroup)
 	ctrl.RegisterDiscordCommand(dcCmdRegister)
 }
 

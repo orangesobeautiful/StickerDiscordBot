@@ -25,13 +25,15 @@ func (s *Server) setModel(
 	e *gin.Engine, dcCmdRegister discordcommand.Register,
 	rd *domainresponse.DomainResponse,
 ) (dcMsgHandler discordmessage.HandlerInterface, err error) {
+	apiGroup := e.Group("/api/v1")
+
 	dcUserRepo := discorduserrepo.NewDiscordUser(s.dbClient)
 	dcUserWebLoginRepo := discorduserrepo.NewRedisDCWebLoginVerification(s.dbClient, s.redisClient)
 	dcUserWebLoginUsecase := discorduserusecase.NewDCWebUsecase(dcUserWebLoginRepo, dcUserRepo)
 	auth := ginauth.New(sessStore, dcUserWebLoginUsecase, ginauth.WithErrRespHandler(ginHSERROutput))
-	discorduserdelivery.Initialze(e, dcCmdRegister, auth, rd, dcUserWebLoginUsecase)
+	discorduserdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, dcUserWebLoginUsecase)
 
-	debugdelivery.Initialze(e, auth)
+	debugdelivery.Initialze(apiGroup, auth)
 
 	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {
@@ -42,7 +44,7 @@ func (s *Server) setModel(
 
 	stickerRepo := stickerrepo.New(s.dbClient)
 	stickerUsecase := stickerusecase.New(stickerRepo, imageRepo)
-	stickerdelivery.Initialze(e, dcCmdRegister, auth, rd, stickerUsecase)
+	stickerdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, stickerUsecase)
 
 	dcMsgHandler = discordmessage.New(stickerUsecase, rd)
 	return dcMsgHandler, nil

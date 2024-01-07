@@ -11,12 +11,12 @@ type debugController struct {
 }
 
 func Initialze(
-	e *gin.Engine,
+	apiGroup *gin.RouterGroup,
 	auth ginauth.AuthInterface,
 ) {
 	ctrl := debugController{
 		auth: auth,
 	}
 
-	ctrl.RegisterGinRouter(e)
+	ctrl.RegisterGinRouter(apiGroup)
 }
