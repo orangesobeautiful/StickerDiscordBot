@@ -14,6 +14,8 @@ type Config interface {
 	GetServer() Server
 	GetDatabase() Database
 	GetRedis() Redis
+	GetVectorDatabase() VectorDatabase
+	GetOpenai() Openai
 	GetObjectStorage() ObjectStorage
 	GetDiscord() Discord
 }
@@ -21,12 +23,21 @@ type Config interface {
 var _ Config = (*config)(nil)
 
 type config struct {
-	Debug         bool
-	Server        *server
-	Database      *database
-	Redis         *redis
+	Debug bool
+
+	Server *server
+
+	Database *database
+
+	Redis *redis
+
+	VectorDatabase *vectorDatabase
+
+	Openai *openai
+
 	ObjectStorage *objectStorage
-	Discord       *discord
+
+	Discord *discord
 }
 
 func New() (configInterface Config, err error) {
@@ -74,6 +85,14 @@ func (c *config) GetDatabase() Database {
 
 func (c *config) GetRedis() Redis {
 	return c.Redis
+}
+
+func (c *config) GetVectorDatabase() VectorDatabase {
+	return c.VectorDatabase
+}
+
+func (c *config) GetOpenai() Openai {
+	return c.Openai
 }
 
 func (c *config) GetObjectStorage() ObjectStorage {

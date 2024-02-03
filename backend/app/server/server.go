@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/redis/go-redis/v9"
+	"github.com/sashabaranov/go-openai"
 	"golang.org/x/xerrors"
 )
 
@@ -33,6 +34,7 @@ type Server struct {
 	dbClient         *ent.Client
 	redisClient      *redis.Client
 	bucketHandler    objectstorage.BucketObjectHandler
+	openaiCli        *openai.Client
 	hs               *http.Server
 	dcCommandManager discordcommand.Manager
 	dcSess           *discordgo.Session
@@ -62,6 +64,8 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return xerrors.Errorf("new redis client: %w", err)
 	}
+	s.initOpenaiClient(cfg.GetOpenai())
+
 	sessStore := s.newSessStore(
 		cfg.GetServer().GetSessionKey().GetUserAuth(),
 		cfg.GetServer().GetCookie(),
@@ -127,6 +131,11 @@ func (s *Server) initRedisClient(redisCfg config.Redis) error {
 
 	s.redisClient = client
 	return nil
+}
+
+func (s *Server) initOpenaiClient(openaiCfg config.Openai) {
+	client := openai.NewClient(openaiCfg.GetToken())
+	s.openaiCli = client
 }
 
 func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.Cookie) sessions.Store {

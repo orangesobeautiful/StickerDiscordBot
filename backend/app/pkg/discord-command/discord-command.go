@@ -57,6 +57,8 @@ func (d *manager) MustAdd(
 
 func (d *manager) RegisterAllCommand(s *discordgo.Session, guildID string) (err error) {
 	for _, v := range d.commands {
+		slog.Info("register command: ", slog.String("name", v.Name))
+
 		var registedCmd *discordgo.ApplicationCommand
 		registedCmd, err = s.ApplicationCommandCreate(s.State.User.ID, guildID, v)
 		if err != nil {

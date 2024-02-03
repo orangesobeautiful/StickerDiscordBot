@@ -2,7 +2,12 @@ package server
 
 import (
 	domainresponse "backend/app/domain-response"
+	chatdelivery "backend/app/model/chat/delivery"
+	chatrepository "backend/app/model/chat/repository"
+	chatusecase "backend/app/model/chat/usecase"
 	debugdelivery "backend/app/model/debug/delivery"
+	discordguildrepository "backend/app/model/discord-guild/repository"
+	discordguildusecase "backend/app/model/discord-guild/usecase"
 	discordmessage "backend/app/model/discord-message"
 	discorduserdelivery "backend/app/model/discorduser/delivery"
 	ginauth "backend/app/model/discorduser/gin-auth"
@@ -34,6 +39,13 @@ func (s *Server) setModel(
 	discorduserdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, dcUserWebLoginUsecase)
 
 	debugdelivery.Initialze(apiGroup, auth)
+
+	discordGuildRepo := discordguildrepository.New(s.dbClient)
+	discordGuildUsecase := discordguildusecase.New(discordGuildRepo)
+
+	chatRepo := chatrepository.New(s.dbClient)
+	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
+	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase)
 
 	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {
