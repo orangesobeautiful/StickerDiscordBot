@@ -70,15 +70,14 @@ func (u *chatUsecase) Chat(
 		return "", xerrors.Errorf("calculate openai chat usage price: %w", err)
 	}
 
-	_, err = u.chatRepo.CreateChatHistory(ctx,
+	_, err = u.chatRepo.CreateOpenaiChatHistory(ctx,
 		chatroom.ID,
 		chatResp.Model,
 		message,
 		replyMessage,
 		openaiChatMessagesToEntChatMessages(chatMessages),
-		openaiChatRequestToEntChatArgs(&chatResuest),
-		uint(chatResp.Usage.PromptTokens),
-		uint(chatResp.Usage.CompletionTokens),
+		&chatResuest,
+		&chatResp,
 		promptPrice,
 		completePrice,
 	)
@@ -139,29 +138,4 @@ func openaiChatMessagesToEntChatMessages(
 	}
 
 	return entChatMessages
-}
-
-func openaiChatRequestToEntChatArgs(
-	openaiChatRequest *openai.ChatCompletionRequest,
-) (args schema.ChatMessageRequestArgument) {
-	if openaiChatRequest.FrequencyPenalty != 0 {
-		args.FrequencyPenalty = openaiChatRequest.FrequencyPenalty
-	}
-	if openaiChatRequest.MaxTokens != 0 {
-		args.MaxTokens = uint(openaiChatRequest.MaxTokens)
-	}
-	if openaiChatRequest.N != 0 {
-		args.N = uint(openaiChatRequest.N)
-	}
-	if openaiChatRequest.PresencePenalty != 0 {
-		args.PresencePenalty = openaiChatRequest.PresencePenalty
-	}
-	if openaiChatRequest.Temperature != 0 {
-		args.Temperature = openaiChatRequest.Temperature
-	}
-	if openaiChatRequest.TopP != 0 {
-		args.TopP = openaiChatRequest.TopP
-	}
-
-	return args
 }

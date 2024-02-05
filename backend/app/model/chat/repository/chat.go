@@ -11,6 +11,7 @@ import (
 	"backend/app/ent/schema"
 	"backend/app/pkg/hserr"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/shopspring/decimal"
 )
 
@@ -28,12 +29,11 @@ func New(client *ent.Client) domain.ChatRepository {
 	}
 }
 
-func (r *chatRepository) CreateChatHistory(ctx context.Context,
+func (r *chatRepository) CreateOpenaiChatHistory(ctx context.Context,
 	chatroomID int,
 	model, requestMessage, replyMessage string,
 	fullRequestMessage []schema.ChatMessage,
-	args schema.ChatMessageRequestArgument,
-	promptTokens, completionTokens uint,
+	req *openai.ChatCompletionRequest, resp *openai.ChatCompletionResponse,
 	promptPrice, completionPrice decimal.Decimal,
 ) (chatHistoryID int, err error) {
 	newChatHistory, err := r.GetEntClient(ctx).ChatHistory.
@@ -51,9 +51,8 @@ func (r *chatRepository) CreateChatHistory(ctx context.Context,
 		SetRefID(newChatHistory.ID).
 		SetModel(model).
 		SetFullRequestMessage(fullRequestMessage).
-		SetRequestArgument(args).
-		SetPromptTokens(promptTokens).
-		SetCompletionTokens(completionTokens).
+		SetRequest(req).
+		SetResponse(resp).
 		SetPromptPrice(promptPrice).
 		SetCompletionPrice(completionPrice).
 		Save(ctx)

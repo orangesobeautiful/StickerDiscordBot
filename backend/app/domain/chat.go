@@ -6,6 +6,7 @@ import (
 	"backend/app/ent"
 	"backend/app/ent/schema"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,12 +14,11 @@ type ListChatHistoriesResult = ListResult[*ent.ChatHistory]
 
 type ChatRepository interface {
 	BaseEntRepoInterface
-	CreateChatHistory(ctx context.Context,
+	CreateOpenaiChatHistory(ctx context.Context,
 		chatroomID int,
 		model, requestMessage, replyMessage string,
 		fullRequestMessage []schema.ChatMessage,
-		args schema.ChatMessageRequestArgument,
-		promptTokens, completionTokens uint,
+		req *openai.ChatCompletionRequest, resp *openai.ChatCompletionResponse,
 		promptPrice, completionPrice decimal.Decimal,
 	) (chatHistoryID int, err error)
 	ListChatHistory(ctx context.Context, chatroomID, offset, limit int) (result ListChatHistoriesResult, err error)
