@@ -26,6 +26,7 @@ func (DiscordGuild) Edges() []ent.Edge {
 		edge.To("activate_chatroom", Chatroom.Type).
 			Unique(),
 		edge.To("chatrooms", Chatroom.Type),
+		edge.To("rag_reference_pool", RAGReferencePool.Type),
 	}
 }
 
@@ -49,5 +50,6 @@ func (Chatroom) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("chat_histories", ChatHistory.Type),
+		edge.To("rag_reference_pool", RAGReferencePool.Type),
 	}
 }

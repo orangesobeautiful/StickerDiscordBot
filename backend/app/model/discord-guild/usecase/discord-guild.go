@@ -70,6 +70,40 @@ func (u *discordGuildUsecase) ListGuildChatrooms(
 	return result, nil
 }
 
+func (u *discordGuildUsecase) IsGuildOwnChatroom(
+	ctx context.Context, guildID string, chatroomID int,
+) (isOwn bool, err error) {
+	chatroom, err := u.discordGuildRepo.GetChatroomByID(ctx, chatroomID)
+	if err != nil {
+		return false, xerrors.Errorf("get chatroom by id: %w", err)
+	}
+
+	if chatroom.Edges.Guild.ID != guildID {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (u *discordGuildUsecase) RemoveGuildChatroom(
+	ctx context.Context, chatroomID int,
+) (err error) {
+	isActivate, err := u.discordGuildRepo.IsChatroomActivate(ctx, chatroomID)
+	if err != nil {
+		return xerrors.Errorf("is chatroom activate: %w", err)
+	}
+	if isActivate {
+		return hserr.New(http.StatusForbidden, "cannot remove activate chatroom")
+	}
+
+	err = u.discordGuildRepo.RemoveGuildChatroom(ctx, chatroomID)
+	if err != nil {
+		return xerrors.Errorf("remove chatroom: %w", err)
+	}
+
+	return nil
+}
+
 func (u *discordGuildUsecase) GetGuildActivateChatroom(ctx context.Context, guildID string) (chatroom *ent.Chatroom, err error) {
 	var chatroomID int
 	chatroomID, err = u.discordGuildRepo.GetGuildActivateChatroomID(ctx, guildID)
@@ -117,6 +151,50 @@ func (u *discordGuildUsecase) ChangeGuildActivateChatRoom(
 	err = u.discordGuildRepo.ChangeGuildActivateChatroom(ctx, guildID, chatroomID)
 	if err != nil {
 		return xerrors.Errorf("change activate chatroom: %w", err)
+	}
+
+	return nil
+}
+
+func (u *discordGuildUsecase) AddChatroomRAGReferencePool(
+	ctx context.Context, chatroomID int, ragReferencePoolID int,
+) (err error) {
+	err = u.discordGuildRepo.AddChatroomRAGReferencePool(ctx, chatroomID, ragReferencePoolID)
+	if err != nil {
+		return xerrors.Errorf("add chatroom rag reference pool: %w", err)
+	}
+
+	return nil
+}
+
+func (u *discordGuildUsecase) GetAllChatroomRAGReferencePools(
+	ctx context.Context, chatroomID int,
+) (result []*ent.RAGReferencePool, err error) {
+	result, err = u.discordGuildRepo.GetAllChatroomRAGReferencePools(ctx, chatroomID)
+	if err != nil {
+		return nil, xerrors.Errorf("get all chatroom rag reference pools: %w", err)
+	}
+
+	return result, nil
+}
+
+func (u *discordGuildUsecase) ListChatroomRAGReferencePools(
+	ctx context.Context, chatroomID int, limit, offset int,
+) (result domain.ListRAGReferencePoolsResult, err error) {
+	result, err = u.discordGuildRepo.ListChatroomRAGReferencePools(ctx, chatroomID, limit, offset)
+	if err != nil {
+		return domain.ListRAGReferencePoolsResult{}, xerrors.Errorf("list chatroom rag reference pools: %w", err)
+	}
+
+	return result, nil
+}
+
+func (u *discordGuildUsecase) RemoveChatroomRAGReferencePool(
+	ctx context.Context, chatroomID int, ragReferencePoolID int,
+) (err error) {
+	err = u.discordGuildRepo.RemoveChatroomRAGReferencePool(ctx, chatroomID, ragReferencePoolID)
+	if err != nil {
+		return xerrors.Errorf("remove chatroom rag reference pool: %w", err)
 	}
 
 	return nil

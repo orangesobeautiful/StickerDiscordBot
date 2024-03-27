@@ -1,6 +1,14 @@
 package config
 
+type VectorDatabaseType string
+
+const (
+	VectorDatabaseTypeQdrant VectorDatabaseType = "qdrant"
+)
+
 type VectorDatabase interface {
+	GetType() VectorDatabaseType
+
 	GetQdrant() Qdrant
 
 	GetToIntializeCollection() bool
@@ -16,6 +24,10 @@ type vectorDatabase struct {
 	InitializeCollection bool
 
 	CollectionName string
+}
+
+func (v *vectorDatabase) GetType() VectorDatabaseType {
+	return VectorDatabaseTypeQdrant
 }
 
 func (v *vectorDatabase) GetQdrant() Qdrant {

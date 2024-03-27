@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"strings"
 
 	"backend/app/domain"
 	"backend/app/ent/schema"
@@ -48,12 +49,38 @@ func (u *chatUsecase) Chat(
 		return "", xerrors.Errorf("get guild activate chatroom: %w", err)
 	}
 
+	ragPools, err := u.discordGuildUsecase.GetAllChatroomRAGReferencePools(ctx, chatroom.ID)
+	if err != nil {
+		return "", xerrors.Errorf("get all chatroom rag reference pools: %w", err)
+	}
+	ragPoolIDs := make([]int, len(ragPools))
+	for i, ragPool := range ragPools {
+		ragPoolIDs[i] = ragPool.ID
+	}
+
+	embeddingResp, err := u.openaiClient.CreateEmbeddings(ctx, openai.EmbeddingRequestStrings{
+		Input:          []string{message},
+		Model:          openai.SmallEmbedding3,
+		EncodingFormat: openai.EmbeddingEncodingFormatBase64,
+	})
+	if err != nil {
+		return "", hserr.NewInternalError(err, "create embeddings")
+	}
+
+	messageEmbedding := embeddingResp.Data[0].Embedding
+
+	const maxRAGReferenceTextAmount = 10
+	ragTexts, err := u.chatRepo.SearchRAGReferencePoolText(ctx, ragPoolIDs, messageEmbedding, maxRAGReferenceTextAmount)
+	if err != nil {
+		return "", xerrors.Errorf("search rag reference pool text: %w", err)
+	}
+
 	const maxChatHistoryRefrenceAmount = 5
 	refChatHistoriesResult, err := u.chatRepo.ListChatHistory(ctx, chatroom.ID, 0, maxChatHistoryRefrenceAmount)
 	if err != nil {
 		return "", xerrors.Errorf("list chat histories: %w", err)
 	}
-	chatMessages := createChatMessagesByChatHistories(message, refChatHistoriesResult)
+	chatMessages := createChatMessagesByChatHistories(message, refChatHistoriesResult, ragTexts)
 
 	const chatModel = GPT3Dot5Turbo0125
 	chatResuest := openai.ChatCompletionRequest{
@@ -89,11 +116,21 @@ func (u *chatUsecase) Chat(
 }
 
 func createChatMessagesByChatHistories(
-	message string, refReverseChatHistoriesResult domain.ListChatHistoriesResult,
+	message string,
+	refReverseChatHistoriesResult domain.ListChatHistoriesResult,
+	ragRefrenceTexts []string,
 ) (messages []openai.ChatCompletionMessage) {
+	chatMessages := []openai.ChatCompletionMessage{
+		{
+			Role: openai.ChatMessageRoleSystem,
+			Content: "以下是根據最新對話所搜尋到最相關的參考資料：[" +
+				strings.Join(ragRefrenceTexts, " ") + "]",
+		},
+	}
+
 	refHistoryMessages := reverseChatHistoriesResultToOpenaiChatCompletionMessages(refReverseChatHistoriesResult)
 
-	chatMessages := refHistoryMessages
+	chatMessages = append(chatMessages, refHistoryMessages...)
 	chatMessages = append(chatMessages,
 		openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleUser,

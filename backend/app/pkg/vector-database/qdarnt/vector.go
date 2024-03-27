@@ -69,11 +69,24 @@ func (q *qdrant) Upsert(ctx context.Context, request *vectordatabase.UpsertReque
 func (q *qdrant) Search(
 	ctx context.Context, request *vectordatabase.SearchRequest,
 ) (resp vectordatabase.SearchResponse, err error) {
-	searchResp, err := q.pointsClient.Search(ctx, &pb.SearchPoints{
+	indexOnly := true
+
+	searchReq := &pb.SearchPoints{
 		CollectionName: q.collectionName,
 		Vector:         request.Vector,
 		Limit:          uint64(request.TopK),
-	})
+		Params: &pb.SearchParams{
+			IndexedOnly: &indexOnly,
+		},
+	}
+	if request.Filter != nil {
+		searchReq.Filter, err = convertSearchFilter(request.Filter)
+		if err != nil {
+			return vectordatabase.SearchResponse{}, xerrors.Errorf("convert search filter: %w", err)
+		}
+	}
+
+	searchResp, err := q.pointsClient.Search(ctx, searchReq)
 	if err != nil {
 		return vectordatabase.SearchResponse{}, xerrors.Errorf("search: %w", err)
 	}

@@ -82,6 +82,10 @@ func (r *discordGuildRepository) GetChatroomByID(ctx context.Context, chatroomID
 		).
 		Only(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, domain.NewHsNotFoundError("chatroom")
+		}
+
 		return nil, hserr.NewInternalError(err, "get chatroom by id")
 	}
 
@@ -114,6 +118,21 @@ func (r *discordGuildRepository) ListGuildChatrooms(
 	return result, nil
 }
 
+func (r *discordGuildRepository) RemoveGuildChatroom(ctx context.Context, chatroomID int) (err error) {
+	err = r.GetEntClient(ctx).Chatroom.
+		DeleteOneID(chatroomID).
+		Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return domain.NewHsNotFoundError("chatroom")
+		}
+
+		return hserr.NewInternalError(err, "remove chatroom")
+	}
+
+	return nil
+}
+
 func (r *discordGuildRepository) GetGuildActivateChatroomID(ctx context.Context, guildID string) (chatroomID int, err error) {
 	discordGuild, err := r.GetEntClient(ctx).DiscordGuild.
 		Query().
@@ -135,6 +154,24 @@ func (r *discordGuildRepository) GetGuildActivateChatroomID(ctx context.Context,
 	return chatroomID, nil
 }
 
+func (r *discordGuildRepository) IsChatroomActivate(ctx context.Context, chatroomID int) (isActivate bool, err error) {
+	_, err = r.GetEntClient(ctx).DiscordGuild.
+		Query().
+		Where(
+			discordguild.HasActivateChatroomWith(chatroom.ID(chatroomID)),
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return false, nil
+		}
+
+		return false, hserr.NewInternalError(err, "is chatroom activate")
+	}
+
+	return true, nil
+}
+
 func (r *discordGuildRepository) ChangeGuildActivateChatroom(ctx context.Context, guildID string, chatroomID int) (err error) {
 	_, err = r.GetEntClient(ctx).DiscordGuild.
 		UpdateOneID(guildID).
@@ -142,6 +179,78 @@ func (r *discordGuildRepository) ChangeGuildActivateChatroom(ctx context.Context
 		Save(ctx)
 	if err != nil {
 		return hserr.NewInternalError(err, "change activated chatroom")
+	}
+
+	return nil
+}
+
+func (r *discordGuildRepository) AddChatroomRAGReferencePool(
+	ctx context.Context, chatroomID int, ragReferencePoolID int,
+) (err error) {
+	_, err = r.GetEntClient(ctx).Chatroom.
+		UpdateOneID(chatroomID).
+		AddRagReferencePoolIDs(ragReferencePoolID).
+		Save(ctx)
+	if err != nil {
+		return hserr.NewInternalError(err, "add chatroom rag reference pool")
+	}
+
+	return nil
+}
+
+func (r *discordGuildRepository) GetAllChatroomRAGReferencePools(
+	ctx context.Context, chatroomID int,
+) (result []*ent.RAGReferencePool, err error) {
+	ragReferencePools, err := r.GetEntClient(ctx).Chatroom.
+		Query().
+		Where(
+			chatroom.ID(chatroomID),
+		).
+		QueryRagReferencePool().
+		All(ctx)
+	if err != nil {
+		return nil, hserr.NewInternalError(err, "get all chatroom rag reference pools")
+	}
+
+	return ragReferencePools, nil
+}
+
+func (r *discordGuildRepository) ListChatroomRAGReferencePools(
+	ctx context.Context, chatroomID int, limit, offset int,
+) (result domain.ListRAGReferencePoolsResult, err error) {
+	queryFilter := r.GetEntClient(ctx).Chatroom.
+		Query().
+		Where(
+			chatroom.ID(chatroomID),
+		).
+		QueryRagReferencePool()
+
+	total, err := queryFilter.Clone().Count(ctx)
+	if err != nil {
+		return result, hserr.NewInternalError(err, "query chatroom rag reference pool count")
+	}
+
+	ragReferencePools, err := queryFilter.
+		Limit(limit).
+		Offset(offset).
+		All(ctx)
+	if err != nil {
+		return domain.ListRAGReferencePoolsResult{}, hserr.NewInternalError(err, "list chatroom rag reference pools")
+	}
+
+	result = domain.NewListResult(total, ragReferencePools)
+	return result, nil
+}
+
+func (r *discordGuildRepository) RemoveChatroomRAGReferencePool(
+	ctx context.Context, chatroomID int, ragReferencePoolID int,
+) (err error) {
+	_, err = r.GetEntClient(ctx).Chatroom.
+		UpdateOneID(chatroomID).
+		RemoveRagReferencePoolIDs(ragReferencePoolID).
+		Save(ctx)
+	if err != nil {
+		return hserr.NewInternalError(err, "remove chatroom rag reference pool")
 	}
 
 	return nil

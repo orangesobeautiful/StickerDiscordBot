@@ -35,18 +35,3 @@ func (ChatHistory) Edges() []ent.Edge {
 			),
 	}
 }
-
-type Embed struct {
-	ent.Schema
-}
-
-func (Embed) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("input"),
-		field.Bytes("content"),
-		field.JSON("metadata", map[string]any{}),
-		field.Time("created_at").
-			Default(time.Now).
-			Immutable(),
-	}
-}

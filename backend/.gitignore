@@ -37,6 +37,7 @@ domain/mock
 # entgo
 app/ent/*
 !app/ent/schema
+!app/ent/entc.go
 !app/ent/generate.go
 !app/ent/extemplates
 

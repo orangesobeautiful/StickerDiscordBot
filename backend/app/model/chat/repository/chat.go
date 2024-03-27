@@ -10,6 +10,7 @@ import (
 	"backend/app/ent/chatroom"
 	"backend/app/ent/schema"
 	"backend/app/pkg/hserr"
+	vectordatabase "backend/app/pkg/vector-database"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/shopspring/decimal"
@@ -19,13 +20,16 @@ var _ domain.ChatRepository = (*chatRepository)(nil)
 
 type chatRepository struct {
 	*domain.BaseEntRepo
+
+	vectorDB vectordatabase.VectorDatabase
 }
 
-func New(client *ent.Client) domain.ChatRepository {
+func New(client *ent.Client, vectorDB vectordatabase.VectorDatabase) domain.ChatRepository {
 	bRepo := domain.NewBaseEntRepo(client)
 
 	return &chatRepository{
 		BaseEntRepo: bRepo,
+		vectorDB:    vectorDB,
 	}
 }
 

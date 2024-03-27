@@ -16,6 +16,8 @@ import (
 	discordmessage "backend/app/model/discord-message"
 	discordcommand "backend/app/pkg/discord-command"
 	objectstorage "backend/app/pkg/object-storage"
+	vectordatabase "backend/app/pkg/vector-database"
+	"backend/app/pkg/vector-database/qdarnt"
 
 	"entgo.io/ent/dialect"
 	"github.com/bwmarrin/discordgo"
@@ -33,6 +35,7 @@ import (
 type Server struct {
 	dbClient         *ent.Client
 	redisClient      *redis.Client
+	vectorDB         vectordatabase.VectorDatabase
 	bucketHandler    objectstorage.BucketObjectHandler
 	openaiCli        *openai.Client
 	hs               *http.Server
@@ -64,6 +67,11 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return xerrors.Errorf("new redis client: %w", err)
 	}
+	err = s.initVectorDatabase(ctx, cfg.GetVectorDatabase())
+	if err != nil {
+		return xerrors.Errorf("init vector database client: %w", err)
+	}
+
 	s.initOpenaiClient(cfg.GetOpenai())
 
 	sessStore := s.newSessStore(
@@ -136,6 +144,28 @@ func (s *Server) initRedisClient(redisCfg config.Redis) error {
 func (s *Server) initOpenaiClient(openaiCfg config.Openai) {
 	client := openai.NewClient(openaiCfg.GetToken())
 	s.openaiCli = client
+}
+
+func (s *Server) initVectorDatabase(ctx context.Context, vectorDBCfg config.VectorDatabase) (err error) {
+	switch vectorDBCfg.GetType() {
+	case config.VectorDatabaseTypeQdrant:
+		s.vectorDB, err = qdarnt.New(vectorDBCfg)
+		if err != nil {
+			return xerrors.Errorf("new qdarnt: %w", err)
+		}
+	default:
+		return xerrors.Errorf("unsupported vector database type: %s", vectorDBCfg.GetType())
+	}
+
+	if vectorDBCfg.GetToIntializeCollection() {
+		const vectorDim = 1536
+		err = s.vectorDB.CreateCollectionIfNotExist(ctx, vectorDim, vectordatabase.DistanceTypeCosine)
+		if err != nil {
+			return xerrors.Errorf("create collection: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.Cookie) sessions.Store {

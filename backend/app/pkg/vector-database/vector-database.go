@@ -1,6 +1,11 @@
 package vectordatabase
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	searchfilter "backend/app/pkg/vector-database/search-filter"
+)
 
 type DistanceType int
 
@@ -43,6 +48,33 @@ type UpsertRequest struct {
 type SearchRequest struct {
 	Vector []float32 `validate:"required"`
 	TopK   uint      `validate:"required"`
+
+	Filter *searchfilter.FilterInstance
+}
+
+var _ error = (*SearchFilterConvertError)(nil)
+
+type SearchFilterConvertError struct {
+	message string
+}
+
+func (e *SearchFilterConvertError) Error() string {
+	return e.message
+}
+
+func NewSearchFilterConvertError(message string) error {
+	return &SearchFilterConvertError{
+		message: message,
+	}
+}
+
+func IsSearchFilterConvertError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *SearchFilterConvertError
+	return errors.As(err, &e)
 }
 
 type SearchResponseData struct {

@@ -6,6 +6,7 @@ import (
 	chatrepository "backend/app/model/chat/repository"
 	chatusecase "backend/app/model/chat/usecase"
 	debugdelivery "backend/app/model/debug/delivery"
+	discordguilddelivery "backend/app/model/discord-guild/delivery"
 	discordguildrepository "backend/app/model/discord-guild/repository"
 	discordguildusecase "backend/app/model/discord-guild/usecase"
 	discordmessage "backend/app/model/discord-message"
@@ -42,8 +43,9 @@ func (s *Server) setModel(
 
 	discordGuildRepo := discordguildrepository.New(s.dbClient)
 	discordGuildUsecase := discordguildusecase.New(discordGuildRepo)
+	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase)
 
-	chatRepo := chatrepository.New(s.dbClient)
+	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
 	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
 	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase)
 
