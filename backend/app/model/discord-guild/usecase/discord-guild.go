@@ -15,13 +15,17 @@ var _ domain.DiscordGuildUsecase = (*discordGuildUsecase)(nil)
 
 type discordGuildUsecase struct {
 	discordGuildRepo domain.DiscordGuildRepository
+
+	chatRepo domain.ChatRepository
 }
 
 func New(
-	discordGuildRepo domain.DiscordGuildRepository,
+	discordGuildRepo domain.DiscordGuildRepository, chatRepo domain.ChatRepository,
 ) domain.DiscordGuildUsecase {
 	return &discordGuildUsecase{
 		discordGuildRepo: discordGuildRepo,
+
+		chatRepo: chatRepo,
 	}
 }
 

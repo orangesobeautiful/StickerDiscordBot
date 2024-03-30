@@ -39,9 +39,6 @@ type ChatRepository interface {
 type ChatUsecase interface {
 	Chat(ctx context.Context, guildID string, message string) (replyMessage string, err error)
 
-	CreateRAGReferencePool(ctx context.Context, guildID, name, description string) (id int, err error)
-	ListRAGReferencePools(ctx context.Context, guildID string, limit, offset int) (result ListRAGReferencePoolsResult, err error)
-
 	CreateRAGReferenceText(ctx context.Context, ragReferencePoolID int, text string) (id int, err error)
 	ListRAGReferenceTexts(ctx context.Context, ragReferencePoolID int, limit, offset int) (result ListRAGReferenceTextsResult, err error)
 	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID int) (err error)

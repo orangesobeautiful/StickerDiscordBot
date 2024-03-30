@@ -41,11 +41,12 @@ func (s *Server) setModel(
 
 	debugdelivery.Initialze(apiGroup, auth)
 
+	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
+
 	discordGuildRepo := discordguildrepository.New(s.dbClient)
-	discordGuildUsecase := discordguildusecase.New(discordGuildRepo)
+	discordGuildUsecase := discordguildusecase.New(discordGuildRepo, chatRepo)
 	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase)
 
-	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
 	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
 	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase)
 

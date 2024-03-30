@@ -43,6 +43,9 @@ type DiscordGuildUsecase interface {
 	GetGuildActivateChatroom(ctx context.Context, guildID string) (chatroom *ent.Chatroom, err error)
 	ChangeGuildActivateChatRoom(ctx context.Context, guildID string, chatroomID int) (err error)
 
+	CreateRAGReferencePool(ctx context.Context, guildID, name, description string) (id int, err error)
+	ListRAGReferencePools(ctx context.Context, guildID string, limit, offset int) (result ListRAGReferencePoolsResult, err error)
+
 	AddChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
 	GetAllChatroomRAGReferencePools(ctx context.Context, chatroomID int) (result []*ent.RAGReferencePool, err error)
 	ListChatroomRAGReferencePools(ctx context.Context, chatroomID int, limit, offset int) (result ListRAGReferencePoolsResult, err error)
