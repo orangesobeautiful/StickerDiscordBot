@@ -18,6 +18,19 @@ const (
 	chatroomIDParam = "chatroom_id"
 )
 
+func getGuildIDFromContext(ctx *gin.Context) string {
+	return ctx.Param(guildIDParam)
+}
+
+func getChatroomIDFromContext(ctx *gin.Context) (int, error) {
+	chatroomIDStr := ctx.Param(chatroomIDParam)
+	chatroomID, err := strconv.Atoi(chatroomIDStr)
+	if err != nil {
+		return 0, hserr.New(http.StatusBadRequest, "chatroom id is not a number")
+	}
+	return chatroomID, nil
+}
+
 func (c *discordGuildController) registerGinRouter(apiGroup *gin.RouterGroup) {
 	authRequiredMiddleware := c.auth.GetRequiredAuthMiddleware()
 
@@ -27,11 +40,16 @@ func (c *discordGuildController) registerGinRouter(apiGroup *gin.RouterGroup) {
 
 	specifyGuildIDGroup.POST("/chatrooms", ginext.BindHandler(c.ginCreateGuildChatroom))
 	specifyGuildIDGroup.GET("/chatrooms", ginext.BindHandler(c.ginlistGuildChatrooms))
+	specifyGuildIDGroup.POST("/rag_ref_pools", ginext.BindHandler(c.ginCreateGuildRAGReferencePool))
+	specifyGuildIDGroup.GET("/rag_ref_pools", ginext.BindHandler(c.ginListGuildRAGReferencePools))
 
 	specifyChatroomIDGroup := apiGroup.Group("/chatrooms/:" + chatroomIDParam)
-	specifyChatroomIDGroup.Use(c.specifyChatroomIDAuth)
+	specifyChatroomIDGroup.Use(authRequiredMiddleware, c.specifyChatroomIDAuth)
 
 	specifyChatroomIDGroup.DELETE("", ginext.BindURIHandler(c.ginDeleteGuildChatroom))
+	specifyChatroomIDGroup.POST("/rag_ref_pools", ginext.BindHandler(c.ginAddChatroomRAGReferencePool))
+	specifyChatroomIDGroup.GET("/rag_ref_pools", ginext.BindHandler(c.ginListChatroomRAGReferencePools))
+	specifyChatroomIDGroup.DELETE("/rag_ref_pools", ginext.BindHandler(c.ginRemoveChatroomRAGReferencePools))
 }
 
 func (c *discordGuildController) registerDiscordCommand(dcCmdRegister discordcommand.Register) {

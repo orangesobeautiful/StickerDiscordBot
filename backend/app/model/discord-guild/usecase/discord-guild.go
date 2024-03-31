@@ -77,12 +77,17 @@ func (u *discordGuildUsecase) ListGuildChatrooms(
 func (u *discordGuildUsecase) IsGuildOwnChatroom(
 	ctx context.Context, guildID string, chatroomID int,
 ) (isOwn bool, err error) {
-	chatroom, err := u.discordGuildRepo.GetChatroomByID(ctx, chatroomID)
+	chatroom, err := u.discordGuildRepo.GetChatroomWithGuildByID(ctx, chatroomID)
 	if err != nil {
 		return false, xerrors.Errorf("get chatroom by id: %w", err)
 	}
 
-	if chatroom.Edges.Guild.ID != guildID {
+	chatroomGuild, err := chatroom.Edges.GuildOrErr()
+	if err != nil {
+		return false, xerrors.Errorf("get chatroom guild: %w", err)
+	}
+
+	if chatroomGuild.ID != guildID {
 		return false, nil
 	}
 
@@ -193,10 +198,10 @@ func (u *discordGuildUsecase) ListChatroomRAGReferencePools(
 	return result, nil
 }
 
-func (u *discordGuildUsecase) RemoveChatroomRAGReferencePool(
-	ctx context.Context, chatroomID int, ragReferencePoolID int,
+func (u *discordGuildUsecase) RemoveChatroomRAGReferencePools(
+	ctx context.Context, chatroomID int, ragReferencePoolIDs []int,
 ) (err error) {
-	err = u.discordGuildRepo.RemoveChatroomRAGReferencePool(ctx, chatroomID, ragReferencePoolID)
+	err = u.discordGuildRepo.RemoveChatroomRAGReferencePools(ctx, chatroomID, ragReferencePoolIDs)
 	if err != nil {
 		return xerrors.Errorf("remove chatroom rag reference pool: %w", err)
 	}

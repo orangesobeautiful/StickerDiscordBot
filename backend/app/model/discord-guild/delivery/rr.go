@@ -102,3 +102,90 @@ type discordDeleteGuildChatroomReq struct {
 
 	ChatroomID int `dccmd:"name=chatroom_id" binding:"required"`
 }
+
+type createGuildRAGReferencePoolReq struct {
+	Name string `json:"name" binding:"required"`
+
+	Description string `json:"description"`
+}
+
+type createGuildRAGReferencePoolResp struct {
+	ID int `json:"id"`
+}
+
+type listGuildRAGReferencePoolsReq struct {
+	Page int `form:"page" binding:"required,gte=1"`
+
+	Limit int `form:"limit" binding:"required,gte=1,lte=30"`
+}
+
+type listGuildRAGReferencePoolsResp struct {
+	TotalCount int `json:"total_count"`
+
+	RAGReferencePools []*ragReferencePool `json:"rag_reference_pools"`
+}
+
+func newlistGuildRAGReferencePoolsRespFromListResult(listResult domain.ListRAGReferencePoolsResult) *listGuildRAGReferencePoolsResp {
+	entRAGReferencePools := listResult.GetItems()
+	ragReferencePools := make([]*ragReferencePool, len(entRAGReferencePools))
+	for i, entRAGReferencePool := range entRAGReferencePools {
+		ragReferencePools[i] = newRAGReferencePoolFromEnt(entRAGReferencePool)
+	}
+
+	return &listGuildRAGReferencePoolsResp{
+		TotalCount:        listResult.GetTotal(),
+		RAGReferencePools: ragReferencePools,
+	}
+}
+
+type ragReferencePool struct {
+	ID int `json:"id"`
+
+	Name string `json:"name"`
+
+	Description string `json:"description"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func newRAGReferencePoolFromEnt(entRAGReferencePool *ent.RAGReferencePool) *ragReferencePool {
+	return &ragReferencePool{
+		ID:          entRAGReferencePool.ID,
+		Name:        entRAGReferencePool.Name,
+		Description: entRAGReferencePool.Description,
+		CreatedAt:   entRAGReferencePool.CreatedAt,
+	}
+}
+
+type ginAddChatroomRAGReferencePoolReq struct {
+	RAGReferencePoolID int `json:"rag_reference_pool_id" binding:"required"`
+}
+
+type ginListChatroomRAGReferencePoolsReq struct {
+	Page int `form:"page" binding:"required,gte=1"`
+
+	Limit int `form:"limit" binding:"required,gte=1,lte=30"`
+}
+
+type listChatroomRAGReferencePoolsResp struct {
+	TotalCount int `json:"total_count"`
+
+	RAGReferencePools []*ragReferencePool `json:"rag_reference_pools"`
+}
+
+func newlistChatroomRAGReferencePoolsRespFromListResult(listResult domain.ListRAGReferencePoolsResult) *listChatroomRAGReferencePoolsResp {
+	entRAGReferencePools := listResult.GetItems()
+	ragReferencePools := make([]*ragReferencePool, len(entRAGReferencePools))
+	for i, entRAGReferencePool := range entRAGReferencePools {
+		ragReferencePools[i] = newRAGReferencePoolFromEnt(entRAGReferencePool)
+	}
+
+	return &listChatroomRAGReferencePoolsResp{
+		TotalCount:        listResult.GetTotal(),
+		RAGReferencePools: ragReferencePools,
+	}
+}
+
+type ginRemoveChatroomRAGReferencePoolsReq struct {
+	RAGReferencePoolIDs []int `json:"rag_reference_pool_ids" binding:"required,min=1"`
+}

@@ -20,6 +20,7 @@ type DiscordGuildRepository interface {
 	CreateGuildChatroom(ctx context.Context, guildID string, name string) (chatroomID int, err error)
 	ListGuildChatrooms(ctx context.Context, guildID string, limit, offset int) (result ListChatroomsResult, err error)
 	GetChatroomByID(ctx context.Context, chatroomID int) (chatroom *ent.Chatroom, err error)
+	GetChatroomWithGuildByID(ctx context.Context, chatroomID int) (chatroom *ent.Chatroom, err error)
 	RemoveGuildChatroom(ctx context.Context, chatroomID int) (err error)
 
 	GetGuildActivateChatroomID(ctx context.Context, guildID string) (chatroomID int, err error)
@@ -29,7 +30,7 @@ type DiscordGuildRepository interface {
 	AddChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
 	GetAllChatroomRAGReferencePools(ctx context.Context, chatroomID int) (result []*ent.RAGReferencePool, err error)
 	ListChatroomRAGReferencePools(ctx context.Context, chatroomID int, limit, offset int) (result ListRAGReferencePoolsResult, err error)
-	RemoveChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
+	RemoveChatroomRAGReferencePools(ctx context.Context, chatroomID int, ragReferencePoolID []int) (err error)
 }
 
 type DiscordGuildUsecase interface {
@@ -49,5 +50,5 @@ type DiscordGuildUsecase interface {
 	AddChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
 	GetAllChatroomRAGReferencePools(ctx context.Context, chatroomID int) (result []*ent.RAGReferencePool, err error)
 	ListChatroomRAGReferencePools(ctx context.Context, chatroomID int, limit, offset int) (result ListRAGReferencePoolsResult, err error)
-	RemoveChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
+	RemoveChatroomRAGReferencePools(ctx context.Context, chatroomID int, ragReferencePoolIDs []int) (err error)
 }

@@ -29,4 +29,3 @@ func (u *discordGuildUsecase) ListRAGReferencePools(
 
 	return result, nil
 }
-
