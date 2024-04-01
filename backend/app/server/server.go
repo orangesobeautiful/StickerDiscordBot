@@ -222,10 +222,10 @@ func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage
 	if err != nil {
 		return xerrors.Errorf("discord session open: %w", err)
 	}
-	err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
-	if err != nil {
-		return xerrors.Errorf("register all command: %w", err)
-	}
+	// err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
+	// if err != nil {
+	// 	return xerrors.Errorf("register all command: %w", err)
+	// }
 	discordSess.AddHandler(s.dcCommandManager.GetHandler())
 
 	s.dcSess = discordSess
@@ -251,10 +251,10 @@ func (s *Server) runHTTPServer(serverCfg config.Server, httpHandler http.Handler
 }
 
 func (s *Server) Close() (err error) {
-	err = s.dcCommandManager.DeleteAllCommand(s.dcSess, "")
-	if err != nil {
-		return xerrors.Errorf("delete all command: %w", err)
-	}
+	// err = s.dcCommandManager.DeleteAllCommand(s.dcSess, "")
+	// if err != nil {
+	// 	return xerrors.Errorf("delete all command: %w", err)
+	// }
 	err = s.dcSess.Close()
 	if err != nil {
 		return xerrors.Errorf("discord session close: %w", err)

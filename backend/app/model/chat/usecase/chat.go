@@ -120,18 +120,16 @@ func createChatMessagesByChatHistories(
 	refReverseChatHistoriesResult domain.ListChatHistoriesResult,
 	ragRefrenceTexts []string,
 ) (messages []openai.ChatCompletionMessage) {
-	chatMessages := []openai.ChatCompletionMessage{
-		{
-			Role: openai.ChatMessageRoleSystem,
-			Content: "以下是根據最新對話所搜尋到最相關的參考資料：[" +
-				strings.Join(ragRefrenceTexts, " ") + "]",
-		},
-	}
-
 	refHistoryMessages := reverseChatHistoriesResultToOpenaiChatCompletionMessages(refReverseChatHistoriesResult)
 
+	chatMessages := make([]openai.ChatCompletionMessage, 0, len(refHistoryMessages)+2)
 	chatMessages = append(chatMessages, refHistoryMessages...)
 	chatMessages = append(chatMessages,
+		openai.ChatCompletionMessage{
+			Role: openai.ChatMessageRoleSystem,
+			Content: "the following is some related data: [" +
+				strings.Join(ragRefrenceTexts, " ") + "]",
+		},
 		openai.ChatCompletionMessage{
 			Role:    openai.ChatMessageRoleUser,
 			Content: message,
