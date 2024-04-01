@@ -29,3 +29,47 @@ func (u *discordGuildUsecase) ListRAGReferencePools(
 
 	return result, nil
 }
+
+func (u *discordGuildUsecase) IsGuildOwnRAGReferencePool(
+	ctx context.Context, guildID string, ragReferencePoolID int,
+) (isOwn bool, err error) {
+	ragReferencePool, err := u.chatRepo.GetRAGReferencePoolWithGuildByID(ctx, ragReferencePoolID)
+	if err != nil {
+		return false, xerrors.Errorf("get chatroom by id: %w", err)
+	}
+
+	ragReferencePoolGuild, err := ragReferencePool.Edges.GuildOrErr()
+	if err != nil {
+		return false, xerrors.Errorf("get chatroom guild: %w", err)
+	}
+
+	if ragReferencePoolGuild.ID != guildID {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (u *discordGuildUsecase) IsGuildOwnRAGReferenceText(
+	ctx context.Context, guildID string, ragReferenceTextID int,
+) (isOwn bool, err error) {
+	ragReferenceText, err := u.chatRepo.GetRAGReferenceTextWithGuildByID(ctx, ragReferenceTextID)
+	if err != nil {
+		return false, xerrors.Errorf("get rag reference text by id: %w", err)
+	}
+
+	ragReferencePool, err := ragReferenceText.Edges.RefOrErr()
+	if err != nil {
+		return false, xerrors.Errorf("get rag reference text guild: %w", err)
+	}
+	guild, err := ragReferencePool.Edges.GuildOrErr()
+	if err != nil {
+		return false, xerrors.Errorf("get rag reference text guild: %w", err)
+	}
+
+	if guild.ID != guildID {
+		return false, nil
+	}
+
+	return true, nil
+}

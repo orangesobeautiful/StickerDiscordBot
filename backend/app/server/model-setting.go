@@ -48,7 +48,7 @@ func (s *Server) setModel(
 	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase)
 
 	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
-	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase)
+	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase, discordGuildUsecase)
 
 	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {

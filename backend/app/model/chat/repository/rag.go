@@ -54,6 +54,21 @@ func (r *chatRepository) ListRAGReferencePools(
 	return result, nil
 }
 
+func (r *chatRepository) GetRAGReferencePoolWithGuildByID(
+	ctx context.Context, ragReferencePoolID int,
+) (ragReferencePool *ent.RAGReferencePool, err error) {
+	ragReferencePool, err = r.GetEntClient(ctx).RAGReferencePool.
+		Query().
+		WithGuild().
+		Where(ragreferencepool.ID(ragReferencePoolID)).
+		Only(ctx)
+	if err != nil {
+		return nil, hserr.NewInternalError(err, "get rag reference pool")
+	}
+
+	return ragReferencePool, nil
+}
+
 func (r *chatRepository) SearchRAGReferencePoolText(
 	ctx context.Context, ragReferencePoolIDs []int, vector []float32, topK uint,
 ) (result []string, err error) {
@@ -168,6 +183,27 @@ func (r *chatRepository) ListRAGReferenceTexts(
 	}
 
 	return result, nil
+}
+
+func (r *chatRepository) GetRAGReferenceTextWithGuildByID(
+	ctx context.Context, ragReferenceTextID int,
+) (ragReferenceText *ent.RAGReferenceText, err error) {
+	ragReferenceText, err = r.GetEntClient(ctx).RAGReferenceText.
+		Query().
+		WithRef(func(query *ent.RAGReferencePoolQuery) {
+			query.WithGuild()
+		}).
+		Where(ragreferencetext.ID(ragReferenceTextID)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, domain.NewHsNotFoundError("rag reference text")
+		}
+
+		return nil, hserr.NewInternalError(err, "get rag reference text")
+	}
+
+	return ragReferenceText, nil
 }
 
 func (r *chatRepository) DeleteRAGReferenceText(

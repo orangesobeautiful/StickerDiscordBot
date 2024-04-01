@@ -26,6 +26,7 @@ type ChatRepository interface {
 
 	CreateRAGReferencePool(ctx context.Context, guildID, name, description string) (id int, err error)
 	ListRAGReferencePools(ctx context.Context, guildID string, limit, offset int) (result ListRAGReferencePoolsResult, err error)
+	GetRAGReferencePoolWithGuildByID(ctx context.Context, ragReferencePoolID int) (ragReferencePool *ent.RAGReferencePool, err error)
 	SearchRAGReferencePoolText(
 		ctx context.Context, ragReferencePoolID []int, reqEmbedding []float32, topK uint) (result []string, err error)
 
@@ -33,6 +34,7 @@ type ChatRepository interface {
 		ctx context.Context, ragReferencePoolID int, text string, embedContent []float32) (id int, err error)
 	GetRAGReferenceTextContent(ctx context.Context, ragReferenceTextID int) (content string, err error)
 	ListRAGReferenceTexts(ctx context.Context, ragReferencePoolID int, limit, offset int) (result ListRAGReferenceTextsResult, err error)
+	GetRAGReferenceTextWithGuildByID(ctx context.Context, ragReferenceTextID int) (ragReferenceText *ent.RAGReferenceText, err error)
 	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID int) (err error)
 }
 
