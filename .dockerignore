@@ -1,7 +1,3 @@
-__pycache__
-
-setting.ini
-
 web/frontend/.quasar/
 web/frontend/.vscode/
 web/frontend/dist/
