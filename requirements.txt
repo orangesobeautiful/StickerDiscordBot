@@ -1,6 +1,0 @@
-APScheduler==3.7.0
-discord.py[voice]==1.7.3
-PyMySQL==1.0.2
-requests==2.25.1
-SQLAlchemy==1.4.1
-youtube-dl>=2021.4.26
