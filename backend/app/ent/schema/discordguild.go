@@ -23,6 +23,7 @@ func (DiscordGuild) Fields() []ent.Field {
 
 func (DiscordGuild) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.To("sticker", Sticker.Type),
 		edge.To("activate_chatroom", Chatroom.Type).
 			Unique(),
 		edge.To("chatrooms", Chatroom.Type),

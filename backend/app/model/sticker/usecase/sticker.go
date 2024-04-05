@@ -26,9 +26,9 @@ func New(stickerRepo domain.StickerRepository, imageRepo domain.ImageRepository)
 	}
 }
 
-func (s *stickerUsecase) AddImageByURL(ctx context.Context, name, imageURL string) (err error) {
+func (s *stickerUsecase) AddImageByURL(ctx context.Context, guildID, name, imageURL string) (err error) {
 	err = s.stickerRepository.WithTx(ctx, func(ctx context.Context) error {
-		stickerID, txErr := s.stickerRepository.CreateIfNotExist(ctx, name)
+		stickerID, txErr := s.stickerRepository.CreateIfNotExist(ctx, guildID, name)
 		if txErr != nil {
 			return xerrors.Errorf("sticker creat if not exist: %w", txErr)
 		}
@@ -47,8 +47,8 @@ func (s *stickerUsecase) AddImageByURL(ctx context.Context, name, imageURL strin
 	return nil
 }
 
-func (s *stickerUsecase) RandSelectImage(ctx context.Context, stickerName string) (result *ent.Image, err error) {
-	images, err := s.GetStickerAllImages(ctx, stickerName)
+func (s *stickerUsecase) RandSelectImage(ctx context.Context, guildID, stickerName string) (result *ent.Image, err error) {
+	images, err := s.GetStickerAllImages(ctx, guildID, stickerName)
 	if err != nil {
 		return nil, xerrors.Errorf("get sticker all image: %w", err)
 	}
@@ -62,9 +62,9 @@ func (s *stickerUsecase) RandSelectImage(ctx context.Context, stickerName string
 }
 
 func (s *stickerUsecase) ListStickers(
-	ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc,
+	ctx context.Context, guildID string, offset, limit int, opts ...domain.StickerListOptionFunc,
 ) (stickers domain.ListStickerResult, err error) {
-	stickers, err = s.stickerRepository.List(ctx, offset, limit, opts...)
+	stickers, err = s.stickerRepository.List(ctx, guildID, offset, limit, opts...)
 	if err != nil {
 		return stickers, xerrors.Errorf(": %w", err)
 	}
@@ -72,8 +72,8 @@ func (s *stickerUsecase) ListStickers(
 	return stickers, nil
 }
 
-func (s *stickerUsecase) GetStickerAllImages(ctx context.Context, stickerName string) (result []*ent.Image, err error) {
-	sticker, err := s.stickerRepository.FindByName(ctx, stickerName)
+func (s *stickerUsecase) GetStickerAllImages(ctx context.Context, guildID, stickerName string) (result []*ent.Image, err error) {
+	sticker, err := s.stickerRepository.FindByName(ctx, guildID, stickerName)
 	if err != nil {
 		return result, xerrors.Errorf("sticker find by id: %w", err)
 	}
@@ -111,8 +111,8 @@ func (s *stickerUsecase) Delete(ctx context.Context, ids ...int) (err error) {
 	return nil
 }
 
-func (s *stickerUsecase) DeleteByName(ctx context.Context, name string) (err error) {
-	sticker, err := s.stickerRepository.FindByName(ctx, name)
+func (s *stickerUsecase) DeleteByName(ctx context.Context, guildID, name string) (err error) {
+	sticker, err := s.stickerRepository.FindByName(ctx, guildID, name)
 	if err != nil {
 		return xerrors.Errorf("sticker find by name: %w", err)
 	}

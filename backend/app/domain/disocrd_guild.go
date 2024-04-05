@@ -36,6 +36,8 @@ type DiscordGuildRepository interface {
 type DiscordGuildUsecase interface {
 	RegisterGuild(ctx context.Context, guildID string) (err error)
 
+	IsGuildOwnSticker(ctx context.Context, guildID string, stickerID int) (isOwn bool, err error)
+
 	CreateGuildChatroom(ctx context.Context, guildID string, name string) (chatroomID int, err error)
 	ListGuildChatrooms(ctx context.Context, guildID string, limit, offset int) (result ListChatroomsResult, err error)
 	IsGuildOwnChatroom(ctx context.Context, guildID string, chatroomID int) (isOwn bool, err error)

@@ -16,7 +16,6 @@ import (
 	discorduserusecase "backend/app/model/discorduser/usecase"
 	imagerepo "backend/app/model/image/repository"
 	imageusecase "backend/app/model/image/usecase"
-	stickerdelivery "backend/app/model/sticker/delivery"
 	stickerrepo "backend/app/model/sticker/repository"
 	stickerusecase "backend/app/model/sticker/usecase"
 	discordcommand "backend/app/pkg/discord-command"
@@ -41,15 +40,6 @@ func (s *Server) setModel(
 
 	debugdelivery.Initialze(apiGroup, auth)
 
-	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
-
-	discordGuildRepo := discordguildrepository.New(s.dbClient)
-	discordGuildUsecase := discordguildusecase.New(discordGuildRepo, chatRepo)
-	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase)
-
-	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
-	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase, discordGuildUsecase)
-
 	imageRepo, err := imagerepo.New(s.dbClient, s.bucketHandler)
 	if err != nil {
 		return nil, xerrors.Errorf("new image repo: %w", err)
@@ -59,7 +49,15 @@ func (s *Server) setModel(
 
 	stickerRepo := stickerrepo.New(s.dbClient)
 	stickerUsecase := stickerusecase.New(stickerRepo, imageRepo)
-	stickerdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, stickerUsecase)
+
+	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
+
+	discordGuildRepo := discordguildrepository.New(s.dbClient)
+	discordGuildUsecase := discordguildusecase.New(discordGuildRepo, stickerRepo, chatRepo)
+	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase, stickerUsecase)
+
+	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
+	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase, discordGuildUsecase)
 
 	dcMsgHandler = discordmessage.New(stickerUsecase, rd)
 	return dcMsgHandler, nil

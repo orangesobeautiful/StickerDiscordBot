@@ -35,6 +35,10 @@ func (Sticker) Indexes() []ent.Index {
 // Edges of the Sticker.
 func (Sticker) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("guild", DiscordGuild.Type).
+			Ref("sticker").
+			Unique().
+			Required(),
 		edge.To("images", Image.Type),
 	}
 }

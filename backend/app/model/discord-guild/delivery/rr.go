@@ -5,11 +5,106 @@ import (
 	"time"
 
 	"backend/app/domain"
+	domainresponse "backend/app/domain-response"
 	"backend/app/ent"
 	discordcommand "backend/app/pkg/discord-command"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+type ginAddImageReq struct {
+	StickerName string `json:"sticker_name" binding:"required"`
+
+	ImageURL string `json:"image_url" binding:"required,http_url"`
+}
+
+type discordAddImageReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	StickerName string `dccmd:"name=sticker_name" binding:"required"`
+
+	ImageURL string `dccmd:"name=image_url" binding:"required,http_url"`
+}
+
+type ginListStickerReq struct {
+	Page int `form:"page" binding:"required,gte=1"`
+
+	Limit int `form:"limit" binding:"required,gte=1,lte=30"`
+
+	Search string `form:"search"`
+}
+
+type discordListStickerReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	Page int `dccmd:"name=page" binding:"required,gte=1"`
+
+	Limit int `dccmd:"name=limit" binding:"required,gte=1,lte=30"`
+
+	Search string `dccmd:"name=search"`
+}
+
+var _ discordcommand.DiscordWebhookParamsMarshaler = (*listStickerResp)(nil)
+
+type listStickerResp struct {
+	TotalCount int `json:"total_count"`
+
+	Stickers []*domainresponse.Sticker `json:"stickers"`
+}
+
+func (c *discordGuildController) newlistStickerRespFromListResult(listResult domain.ListStickerResult) *listStickerResp {
+	entSs := listResult.GetItems()
+	ss := make([]*domainresponse.Sticker, len(entSs))
+	for i, entS := range entSs {
+		ss[i] = c.rd.NewStickerFromEnt(entS)
+	}
+
+	return &listStickerResp{
+		TotalCount: listResult.GetTotal(),
+		Stickers:   ss,
+	}
+}
+
+func (l *listStickerResp) MarshalDiscordWebhookParams() *discordgo.WebhookParams {
+	result := new(discordgo.WebhookParams)
+
+	result.Content = "貼圖列表"
+
+	for _, s := range l.Stickers {
+		stickerEmbedTitle := fmt.Sprintf("%d: %s", s.ID, s.StickerName)
+
+		for _, img := range s.Images {
+			imgEmbed := &discordgo.MessageEmbed{
+				Type:  discordgo.EmbedTypeImage,
+				Title: stickerEmbedTitle,
+				URL:   fmt.Sprintf("https://%d.for.display.multiple.images.in.a.single.embed", s.ID),
+				Image: &discordgo.MessageEmbedImage{
+					URL: img.URL,
+				},
+			}
+
+			result.Embeds = append(result.Embeds, imgEmbed)
+		}
+	}
+
+	return result
+}
+
+type ginDeleteStickerReq struct {
+	StickerID int `uri:"sticker_id" binding:"required,gte=0"`
+}
+
+type discordDeleteStickerReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	ID int `dccmd:"name=id" binding:"required,gte=0"`
+}
+
+type discordDeleteStickerByNameReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	Name string `dccmd:"name=name" binding:"required"`
+}
 
 type ginCreateGuildChatroomReq struct {
 	Name string `json:"name" binding:"required"`
