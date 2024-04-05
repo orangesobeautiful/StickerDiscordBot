@@ -2,7 +2,6 @@ package discordcommand
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -10,8 +9,6 @@ var (
 	DiscordCommandTagName   = "dccmd"
 	ExternalNameTagNames    = []string{"json"}
 	ExternalValidateTagName = "binding"
-
-	enLocalesTranslator = en_US.New()
 
 	Validate = validator.New(validator.WithRequiredStructEnabled())
 )

@@ -78,9 +78,7 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 		cfg.GetServer().GetSessionKey().GetUserAuth(),
 		cfg.GetServer().GetCookie(),
 	)
-	if err != nil {
-		return xerrors.Errorf("new session store: %w", err)
-	}
+
 	bucketHandler, err := objectstorage.NewBucketHandler(ctx, cfg.GetObjectStorage())
 	if err != nil {
 		return xerrors.Errorf("new bucket handler: %w", err)
@@ -213,7 +211,7 @@ func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage
 	if err != nil {
 		return xerrors.Errorf("new discord session: %w", err)
 	}
-	discordSess.AddHandler(func(s *discordgo.Session, m *discordgo.Ready) {
+	discordSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Ready) {
 		slog.Info(fmt.Sprintf("logged in as: %s#%s", s.State.User.Username, s.State.User.Discriminator))
 	})
 	discordSess.AddHandler(dcMsgHandler.GetHandler())

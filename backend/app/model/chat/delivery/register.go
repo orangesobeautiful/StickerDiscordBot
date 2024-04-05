@@ -1,8 +1,8 @@
 package delivery
 
 import (
+	"context"
 	"net/http"
-	"strconv"
 
 	"backend/app/domain"
 	commonDelivery "backend/app/pkg/common/delivery"
@@ -11,6 +11,7 @@ import (
 	"backend/app/pkg/hserr"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -41,70 +42,41 @@ func (c *chatController) registerGinRouter(apiGroup *gin.RouterGroup) {
 	specifyRAGReferenceTextIDGroup.DELETE("", ginext.Handler(c.ginDeleteRAGReferenceText))
 }
 
-func (c *chatController) specifyRAGReferencePoolIDAuth(ctx *gin.Context) {
+func (c *chatController) isGinUserGuildOwnResource(
+	ctx *gin.Context, resourceIDParam, resourceLabel string,
+	guildOwnResourceFunc func(ctx context.Context, guildID string, ragReferencePoolID int) (isOwn bool, err error),
+) {
 	user := c.auth.MustGetUserFromContext(ctx)
 
-	ragReferencePoolIDStr := ctx.Param(ragReferencePoolIDParam)
-	ragReferencePoolID, err := strconv.ParseInt(ragReferencePoolIDStr, 10, 64)
+	resourceID, err := commonDelivery.GetIDParamFromContext(ctx, resourceIDParam)
 	if err != nil {
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.New(http.StatusBadRequest, "rag reference pool is not a number"))
-		return
+		err = xerrors.Errorf("get %s id from context: %w", resourceLabel, err)
+		commonDelivery.GinAbortWithError(ctx, err)
 	}
 
-	guildOwnRAGReferencePool, err := c.dcGuildUsecase.IsGuildOwnRAGReferencePool(ctx, user.GuildID, int(ragReferencePoolID))
+	isGuildOwnResource, err := guildOwnResourceFunc(ctx, user.GuildID, resourceID)
 	if err != nil {
 		if domain.IsNotFoundError(err) {
-			commonDelivery.GinAbortWithError(ctx,
-				hserr.New(http.StatusForbidden, "you are not allowed to access this rag reference pool"))
+			commonDelivery.GinAbortWithError(ctx, hserr.New(http.StatusForbidden, "you are not allowed to access this "+resourceLabel))
 			return
 		}
 
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.NewInternalError(err, "check if guild own rag reference pool"))
+		commonDelivery.GinAbortWithError(ctx, hserr.NewInternalError(err, "check if guild own "+resourceLabel))
 		return
 	}
 
-	if !guildOwnRAGReferencePool {
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.New(http.StatusForbidden, "you are not allowed to access this rag reference pool"))
+	if !isGuildOwnResource {
+		commonDelivery.GinAbortWithError(ctx, hserr.New(http.StatusForbidden, "you are not allowed to access this "+resourceLabel))
 		return
 	}
+}
 
-	ctx.Next()
+func (c *chatController) specifyRAGReferencePoolIDAuth(ctx *gin.Context) {
+	c.isGinUserGuildOwnResource(ctx, ragReferencePoolIDParam, "rag reference pool", c.dcGuildUsecase.IsGuildOwnRAGReferencePool)
 }
 
 func (c *chatController) specifyRAGReferenceTextIDAuth(ctx *gin.Context) {
-	user := c.auth.MustGetUserFromContext(ctx)
-
-	ragReferenceTextIDStr := ctx.Param(ragReferenceTextIDParam)
-	ragReferenceTextID, err := strconv.ParseInt(ragReferenceTextIDStr, 10, 64)
-	if err != nil {
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.New(http.StatusBadRequest, "rag reference text is not a number"))
-		return
-	}
-
-	guildOwnRAGReferenceText, err := c.dcGuildUsecase.IsGuildOwnRAGReferenceText(ctx, user.GuildID, int(ragReferenceTextID))
-	if err != nil {
-		if domain.IsNotFoundError(err) {
-			commonDelivery.GinAbortWithError(ctx,
-				hserr.New(http.StatusForbidden, "you are not allowed to access this rag reference text"))
-			return
-		}
-
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.NewInternalError(err, "check if guild own rag reference text"))
-		return
-	}
-
-	if !guildOwnRAGReferenceText {
-		commonDelivery.GinAbortWithError(ctx,
-			hserr.New(http.StatusForbidden, "you are not allowed to access this rag reference text"))
-		return
-	}
-
-	ctx.Next()
+	c.isGinUserGuildOwnResource(ctx, ragReferenceTextIDParam, "rag reference text", c.dcGuildUsecase.IsGuildOwnRAGReferenceText)
 }
 
 func (c *chatController) registerDiscordCommand(dcCmdRegister discordcommand.Register) {
