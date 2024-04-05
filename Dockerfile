@@ -15,6 +15,7 @@ RUN go version
 COPY ./backend/go.mod ./backend/go.sum /backend/
 RUN go mod download
 COPY ./backend/ /backend/
+RUN go generate ./app/ent
 RUN CGO_ENABLED=0 go build -ldflags="-s" -o backend-server
 COPY --from=build-frontend /frontend/dist/spa/ /backend/frontend-dist/frontend-static/original/
 
