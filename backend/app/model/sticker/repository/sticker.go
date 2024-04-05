@@ -5,6 +5,8 @@ import (
 
 	"backend/app/domain"
 	"backend/app/ent"
+	"backend/app/ent/discordguild"
+	"backend/app/ent/predicate"
 	"backend/app/ent/sticker"
 	"backend/app/pkg/hserr"
 
@@ -24,14 +26,19 @@ func New(client *ent.Client) domain.StickerRepository {
 	}
 }
 
-func (r *stickerRepository) CreateIfNotExist(ctx context.Context, name string) (stickerID int, err error) {
+func (r *stickerRepository) CreateIfNotExist(ctx context.Context, guildID, name string) (stickerID int, err error) {
 	s, err := r.GetEntClient(ctx).Sticker.
 		Query().
-		Where(sticker.Name(name)).
+		Where(
+			sticker.And(
+				sticker.HasGuildWith(discordguild.ID(guildID)),
+				sticker.Name(name),
+			),
+		).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			stickerID, err = r.create(ctx, name)
+			stickerID, err = r.create(ctx, guildID, name)
 			if err != nil {
 				return 0, xerrors.Errorf("create sticker: %w", err)
 			}
@@ -44,9 +51,10 @@ func (r *stickerRepository) CreateIfNotExist(ctx context.Context, name string) (
 	return s.ID, nil
 }
 
-func (r *stickerRepository) create(ctx context.Context, name string) (int, error) {
+func (r *stickerRepository) create(ctx context.Context, guildID, name string) (int, error) {
 	s, err := r.GetEntClient(ctx).Sticker.
 		Create().
+		SetGuildID(guildID).
 		SetName(name).
 		Save(ctx)
 	if err != nil {
@@ -55,10 +63,32 @@ func (r *stickerRepository) create(ctx context.Context, name string) (int, error
 	return s.ID, nil
 }
 
-func (r *stickerRepository) FindByName(ctx context.Context, name string) (result *ent.Sticker, err error) {
+func (r *stickerRepository) GetStickerWithGuildByID(ctx context.Context, stickerID int) (result *ent.Sticker, err error) {
 	s, err := r.GetEntClient(ctx).Sticker.
 		Query().
-		Where(sticker.Name(name)).
+		Where(sticker.ID(stickerID)).
+		WithGuild().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, domain.NewHsNotFoundError("sticker")
+		}
+
+		return nil, hserr.NewInternalError(err, "query sticker")
+	}
+
+	return s, nil
+}
+
+func (r *stickerRepository) FindByName(ctx context.Context, guildID, name string) (result *ent.Sticker, err error) {
+	s, err := r.GetEntClient(ctx).Sticker.
+		Query().
+		Where(
+			sticker.And(
+				sticker.HasGuildWith(discordguild.ID(guildID)),
+				sticker.Name(name),
+			),
+		).
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -72,19 +102,22 @@ func (r *stickerRepository) FindByName(ctx context.Context, name string) (result
 }
 
 func (r *stickerRepository) List(
-	ctx context.Context, offset, limit int, opts ...domain.StickerListOptionFunc,
+	ctx context.Context, guildID string, offset, limit int, opts ...domain.StickerListOptionFunc,
 ) (result domain.ListStickerResult, err error) {
 	listOpts := domain.NewStickerListOption(opts...)
 
 	queryFilter := r.GetEntClient(ctx).Sticker.
-		Query().
-		Offset(offset).
-		Limit(limit)
+		Query()
 
+	andConds := []predicate.Sticker{
+		sticker.HasGuildWith(discordguild.IDEQ(guildID)),
+	}
 	searchName := listOpts.GetSearchName()
 	if searchName != "" {
-		queryFilter = queryFilter.Where(sticker.NameContainsFold(searchName))
+		andConds = append(andConds, sticker.NameContainsFold(searchName))
 	}
+	queryFilter = queryFilter.Where(sticker.And(andConds...))
+
 	withImg := listOpts.GetWithImages()
 	if withImg {
 		imgLimit := listOpts.GetWithImagesLimit()
@@ -100,6 +133,9 @@ func (r *stickerRepository) List(
 		return result, hserr.NewInternalError(err, "query sticker count")
 	}
 
+	queryFilter = queryFilter.
+		Offset(offset).
+		Limit(limit)
 	ss, err := queryFilter.All(ctx)
 	if err != nil {
 		return result, hserr.NewInternalError(err, "query sticker")

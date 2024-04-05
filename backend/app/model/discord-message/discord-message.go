@@ -42,7 +42,7 @@ func (d *handler) Handle(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	ctx := context.Background()
-	img, err := d.stickerUsecase.RandSelectImage(ctx, m.Content)
+	img, err := d.stickerUsecase.RandSelectImage(ctx, m.GuildID, m.Content)
 	if err != nil {
 		slog.Error("stickerUsecase.RandSelectImage failed", slog.Any("err", err))
 		return

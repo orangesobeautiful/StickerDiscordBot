@@ -16,14 +16,20 @@ var _ domain.DiscordGuildUsecase = (*discordGuildUsecase)(nil)
 type discordGuildUsecase struct {
 	discordGuildRepo domain.DiscordGuildRepository
 
+	stickerRepo domain.StickerRepository
+
 	chatRepo domain.ChatRepository
 }
 
 func New(
-	discordGuildRepo domain.DiscordGuildRepository, chatRepo domain.ChatRepository,
+	discordGuildRepo domain.DiscordGuildRepository,
+	stickerRepo domain.StickerRepository,
+	chatRepo domain.ChatRepository,
 ) domain.DiscordGuildUsecase {
 	return &discordGuildUsecase{
 		discordGuildRepo: discordGuildRepo,
+
+		stickerRepo: stickerRepo,
 
 		chatRepo: chatRepo,
 	}
@@ -50,6 +56,26 @@ func (u *discordGuildUsecase) RegisterGuild(ctx context.Context, guildID string)
 	}
 
 	return nil
+}
+
+func (u *discordGuildUsecase) IsGuildOwnSticker(
+	ctx context.Context, guildID string, stickerID int,
+) (isOwn bool, err error) {
+	sticker, err := u.stickerRepo.GetStickerWithGuildByID(ctx, stickerID)
+	if err != nil {
+		return false, xerrors.Errorf("get sticker by id: %w", err)
+	}
+
+	guild, err := sticker.Edges.GuildOrErr()
+	if err != nil {
+		return false, hserr.NewInternalError(err, "get sticker guild")
+	}
+
+	if guild.ID != guildID {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (u *discordGuildUsecase) CreateGuildChatroom(
