@@ -51,7 +51,7 @@ func NewBucketHandler(ctx context.Context, objectStorageCfg config.ObjectStorage
 	accessKeyID := objectStorageCfg.GetAccessKeyID()
 	accessKeySecret := objectStorageCfg.GetAccessKeySecret()
 
-	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
+	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			URL: objectStorageCfg.GetEndpoint(),
 		}, nil
