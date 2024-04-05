@@ -1,18 +1,25 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
-	"backend/config"
-	"backend/models"
-	"backend/pkg/log"
-	"backend/server"
-	"backend/utils"
+	"backend/app/config"
+	"backend/app/pkg/log"
+	"backend/app/server"
+	"backend/app/utils"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
+	time.Local = time.UTC
+
+	ctx := context.Background()
+
 	flag.Parse()
 
 	log.Init()
@@ -22,30 +29,15 @@ func main() {
 		log.Panicf("utils.Init failed: %s", err)
 	}
 
-	cfg, err := config.Init()
+	cfg, err := config.New()
 	if err != nil {
 		log.Panicf("config.Init failed: %s", err)
 	}
 
-	err = models.Init(cfg)
-	if err != nil {
-		log.Panicf("models.Init failed: %s", err)
-	}
-
-	s, err := server.New(cfg)
+	signalCtx, stop := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	defer stop()
+	err = server.NewAndRun(signalCtx, cfg)
 	if err != nil {
 		log.Panicf("server.New failed: %s", err)
-	}
-
-	hs := http.Server{
-		Addr:        cfg.Server.Addr,
-		Handler:     s,
-		ReadTimeout: 60 * time.Second,
-	}
-
-	log.Infof("server start at %s", cfg.Server.Addr)
-	err = hs.ListenAndServe()
-	if err != nil {
-		log.Errorf("server.ListenAndServe failed: %s", err)
 	}
 }

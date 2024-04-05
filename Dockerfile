@@ -1,6 +1,6 @@
 FROM docker.io/library/node:14.21.3 AS frontend-deps
 WORKDIR /frontend/
-RUN npm i -g @quasar/cli
+RUN npm i -g @quasar/cli@2.3.0
 COPY ./web/frontend/package.json ./web/frontend/yarn.lock /frontend/
 RUN npm install
 
@@ -9,12 +9,13 @@ WORKDIR /frontend/
 COPY ./web/frontend/ /frontend/
 RUN quasar build -m spa
 
-FROM docker.io/library/golang:1.20-alpine as build-backend
+FROM docker.io/library/golang:1.21.4-alpine as build-backend
 WORKDIR /backend/
 RUN go version
 COPY ./backend/go.mod ./backend/go.sum /backend/
 RUN go mod download
 COPY ./backend/ /backend/
+RUN go generate ./app/ent
 RUN CGO_ENABLED=0 go build -ldflags="-s" -o backend-server
 COPY --from=build-frontend /frontend/dist/spa/ /backend/frontend-dist/frontend-static/original/
 
