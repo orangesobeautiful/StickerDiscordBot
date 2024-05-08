@@ -221,9 +221,11 @@ func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage
 		return xerrors.Errorf("discord session open: %w", err)
 	}
 
-	err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
-	if err != nil {
-		return xerrors.Errorf("register all command: %w", err)
+	if !dcCfg.GetDisableRegisterCommand() {
+		err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
+		if err != nil {
+			return xerrors.Errorf("register all command: %w", err)
+		}
 	}
 
 	discordSess.AddHandler(s.dcCommandManager.GetHandler())

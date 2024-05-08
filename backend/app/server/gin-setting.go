@@ -93,7 +93,11 @@ func setGinLangDeal(e *gin.Engine) {
 func setGinCORS(e *gin.Engine, corsCfg config.CORS) {
 	if corsCfg != nil {
 		var allowOriginFunc func(origin string) bool
-		if len(corsCfg.GetAllowOrigins()) > 0 {
+		if corsCfg.GetAllowAllOrigins() {
+			allowOriginFunc = func(_ string) bool {
+				return true
+			}
+		} else if len(corsCfg.GetAllowOrigins()) > 0 {
 			allowOriginSet := mapset.NewSet[string]()
 			for _, origin := range corsCfg.GetAllowOrigins() {
 				allowOriginSet.Add(origin)

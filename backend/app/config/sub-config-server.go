@@ -31,6 +31,7 @@ type Cookie interface {
 }
 
 type CORS interface {
+	GetAllowAllOrigins() bool
 	GetAllowOrigins() []string
 	GetAllowMethods() []string
 	GetAllowHeaders() []string
@@ -131,12 +132,17 @@ func (c *cookie) GetSameSite() http.SameSite {
 var _ CORS = (*cors)(nil)
 
 type cors struct {
+	AllowAllOrigins  bool
 	AllowOrigins     []string
 	AllowMethods     []string
 	AllowHeaders     []string
 	ExposeHeaders    []string
 	AllowCredentials bool
 	MaxAge           time.Duration
+}
+
+func (c *cors) GetAllowAllOrigins() bool {
+	return c.AllowAllOrigins
 }
 
 func (c *cors) GetAllowOrigins() []string {
