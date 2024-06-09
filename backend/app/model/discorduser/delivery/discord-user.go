@@ -59,10 +59,16 @@ func (c *discorduserController) VerifyLoginCode(req *verifyLoginCodeReq) (*ginex
 	return nil, nil
 }
 
-func (c *discorduserController) CheckLoginCode(ctx *gin.Context, req checkLoginCodeReq) (*ginext.EmptyResp, error) {
-	newSessionID, err := c.dcWebLoginUsecase.CheckLoginCode(ctx, req.Code)
+func (c *discorduserController) CheckLoginCode(ctx *gin.Context, req checkLoginCodeReq) (*checkLoginCodeResp, error) {
+	newSessionID, loggedIn, err := c.dcWebLoginUsecase.CheckLoginCode(ctx, req.Code)
 	if err != nil {
 		return nil, xerrors.Errorf("check login code: %w", err)
+	}
+
+	if !loggedIn {
+		return &checkLoginCodeResp{
+			IsVerified: false,
+		}, nil
 	}
 
 	err = c.auth.SetSession(ctx, newSessionID)
@@ -70,7 +76,10 @@ func (c *discorduserController) CheckLoginCode(ctx *gin.Context, req checkLoginC
 		return nil, xerrors.Errorf("save session: %w", err)
 	}
 
-	return nil, nil
+	return &checkLoginCodeResp{
+		IsVerified: true,
+		Token:      newSessionID.String(),
+	}, nil
 }
 
 func (c *discorduserController) GetSelfInfo(ctx *gin.Context) (*getSelfInfoResp, error) {

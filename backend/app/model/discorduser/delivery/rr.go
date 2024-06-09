@@ -14,6 +14,12 @@ type checkLoginCodeReq struct {
 	Code string `json:"code" binding:"required"`
 }
 
+type checkLoginCodeResp struct {
+	IsVerified bool `json:"is_verified"`
+
+	Token string `json:"token"`
+}
+
 type verifyLoginCodeReq struct {
 	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
 

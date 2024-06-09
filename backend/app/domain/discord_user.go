@@ -72,7 +72,7 @@ type DiscordWebLoginVerificationRepository interface {
 type DiscordWebLoginVerificationUsecase interface {
 	CreateRandomLoginCode(ctx context.Context) (code string, err error)
 	VerifyLoginCode(ctx context.Context, code, userDiscordID, userGuildlID, name, avatarURL string) (err error)
-	CheckLoginCode(ctx context.Context, code string) (newSessionID uuid.UUID, err error)
+	CheckLoginCode(ctx context.Context, code string) (newSessionID uuid.UUID, loggedIn bool, err error)
 
 	GetDiscordUserBySessionID(ctx context.Context, sessionID uuid.UUID) (dcUser *ent.DiscordUser, err error)
 }

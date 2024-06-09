@@ -81,26 +81,26 @@ func (s *dcWebLoginVerifyUsecase) verifyLoginCodeCheck(ctx context.Context, code
 	return nil
 }
 
-func (s *dcWebLoginVerifyUsecase) CheckLoginCode(ctx context.Context, code string) (newSessionID uuid.UUID, err error) {
+func (s *dcWebLoginVerifyUsecase) CheckLoginCode(ctx context.Context, code string) (newSessionID uuid.UUID, loggedIn bool, err error) {
 	verifyResult, err := s.dcWebLoginVerifyRepo.FindLoginCodeByCode(ctx, code)
 	if err != nil {
-		return uuid.Nil, xerrors.Errorf("find by code: %w", err)
+		return uuid.Nil, false, xerrors.Errorf("find by code: %w", err)
 	}
 	if verifyResult == nil {
-		return uuid.Nil, hserr.New(http.StatusBadRequest, "verify code is not valid")
+		return uuid.Nil, false, hserr.New(http.StatusBadRequest, "verify code is not valid")
 	}
 
 	if !verifyResult.IsVerified() {
-		return uuid.Nil, hserr.New(http.StatusUnauthorized, "not verified")
+		return uuid.Nil, false, nil
 	}
 
 	newSessionID, err = s.createNewLoginSessionByVerifyResult(ctx, verifyResult)
 	if err != nil {
-		return uuid.Nil, xerrors.Errorf("create login session: %w", err)
+		return uuid.Nil, false, xerrors.Errorf("create login session: %w", err)
 	}
 
 	_ = s.dcWebLoginVerifyRepo.DeleteLoginCode(ctx, code)
-	return newSessionID, nil
+	return newSessionID, true, nil
 }
 
 func (s *dcWebLoginVerifyUsecase) createNewLoginSessionByVerifyResult(
