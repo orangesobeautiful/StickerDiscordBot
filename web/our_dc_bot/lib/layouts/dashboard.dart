@@ -10,50 +10,19 @@ import 'package:our_dc_bot/routers/enum.dart';
 import 'package:our_dc_bot/global/global.dart';
 
 class DashboardLayout extends ConsumerWidget {
-  const DashboardLayout({super.key, required this.page});
+  const DashboardLayout({super.key, required this.navigationShellPage});
 
-  final Widget page;
-
-  Future<UserInformation> _getSelfInformation(
-      BuildContext context, WidgetRef ref) async {
-    return ref
-        .read<UIAPIHandler>(apiHandlerProvider)
-        .call(context, (api) => api.getSelfInformation());
-  }
+  final StatefulNavigationShell navigationShellPage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    AuthState authState = ref.watch(authStateNotifierProvider);
-    if (authState.isLogin) {
-      return DashboardLayoutPage(page: page);
-    }
-
-    return FutureBuilder<UserInformation>(
-      future: _getSelfInformation(context, ref),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          if (snapshot.hasError) {
-            if (snapshot.error is UnauthorizedException) {
-              ref.read(authStateNotifierProvider.notifier).logout();
-              context.goNamed(RouterName.signIn.path);
-              return const DashboardLayoutPage(page: Center());
-            }
-
-            return const DashboardLayoutPage(page: FailedInitPage());
-          }
-
-          ref
-              .read(authStateNotifierProvider.notifier)
-              .updateLoginStatus(snapshot.data!);
-          return DashboardLayoutPage(page: page);
-        }
-
-        return const DashboardLayoutPage(
-          page: Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Our Discord Bot'),
+      ),
+      drawer: DashboardNavigationDrawer(navigationShell: navigationShellPage),
+      body: DashboardLayoutPage(page: navigationShellPage),
     );
   }
 }
@@ -83,40 +52,62 @@ class DashboardLayoutPage extends ConsumerWidget {
 
   final Widget page;
 
+  Future<UserInformation> _getSelfInformation(
+      BuildContext context, WidgetRef ref) async {
+    return ref
+        .read<UIAPIHandler>(apiHandlerProvider)
+        .call(context, (api) => api.getSelfInformation());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Our Discord Bot'),
-      ),
-      drawer: const DashboardNavigationDrawer(),
-      body: page,
+    AuthState authState = ref.watch(authStateNotifierProvider);
+    if (authState.isLogin) {
+      return page;
+    }
+
+    return FutureBuilder<UserInformation>(
+      future: _getSelfInformation(context, ref),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.hasError) {
+            if (snapshot.error is UnauthorizedException) {
+              ref.read(authStateNotifierProvider.notifier).logout();
+              context.goNamed(RouterName.signIn.path);
+              return const SizedBox();
+            }
+
+            return const FailedInitPage();
+          }
+
+          ref
+              .read(authStateNotifierProvider.notifier)
+              .updateLoginStatus(snapshot.data!);
+          return page;
+        }
+
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
     );
   }
 }
 
-class DashboardNavigationDrawer extends ConsumerStatefulWidget {
-  const DashboardNavigationDrawer({super.key});
+class DashboardNavigationDrawer extends StatelessWidget {
+  const DashboardNavigationDrawer({super.key, required this.navigationShell});
 
-  @override
-  DashboardNavigationDrawerState createState() =>
-      DashboardNavigationDrawerState();
-}
-
-class DashboardNavigationDrawerState
-    extends ConsumerState<DashboardNavigationDrawer> {
-  int _navigationSelectedIndex = 1;
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
     return NavigationDrawer(
-      selectedIndex: _navigationSelectedIndex,
-      onDestinationSelected: (selectedScreen) {
-        setState(() {
-          _navigationSelectedIndex = selectedScreen;
-          context.goNamed(destinations[selectedScreen].label);
-        });
+      selectedIndex: navigationShell.currentIndex,
+      onDestinationSelected: (selectedIndex) {
+        navigationShell.goBranch(
+          selectedIndex,
+          initialLocation: selectedIndex == navigationShell.currentIndex,
+        );
       },
       children: <Widget>[
         Padding(
@@ -146,10 +137,10 @@ class NavigationDestinationContent {
   final Widget selectedIcon;
 }
 
-const List<NavigationDestinationContent> destinations =
+List<NavigationDestinationContent> destinations =
     <NavigationDestinationContent>[
-  NavigationDestinationContent(
-      '貼圖管理', Icon(Icons.settings_outlined), Icon(Icons.settings)),
-  NavigationDestinationContent(
-      '我的資訊', Icon(Icons.info_outlined), Icon(Icons.info)),
+  NavigationDestinationContent(RouterName.stickerManager.name,
+      const Icon(Icons.settings_outlined), const Icon(Icons.settings)),
+  NavigationDestinationContent(RouterName.myInfo.name,
+      const Icon(Icons.info_outlined), const Icon(Icons.info)),
 ];
