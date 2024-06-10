@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:our_dc_bot/api/api.dart';
+import 'package:our_dc_bot/api/exception.dart';
 import 'package:our_dc_bot/api/model.dart';
+import 'package:our_dc_bot/routers/enum.dart';
 import 'package:our_dc_bot/global/global.dart';
 
 class DashboardLayout extends ConsumerWidget {
@@ -31,7 +33,13 @@ class DashboardLayout extends ConsumerWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           if (snapshot.hasError) {
-            return const DashboardLayout(page: NeedLogin());
+            if (snapshot.error is UnauthorizedException) {
+              ref.read(authStateNotifierProvider.notifier).logout();
+              context.goNamed(RouterName.signIn.path);
+              return const DashboardLayoutPage(page: Center());
+            }
+
+            return const DashboardLayoutPage(page: FailedInitPage());
           }
 
           ref
@@ -50,13 +58,19 @@ class DashboardLayout extends ConsumerWidget {
   }
 }
 
-class NeedLogin extends StatelessWidget {
-  const NeedLogin({super.key});
+class FailedInitPage extends StatelessWidget {
+  const FailedInitPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('Welcome to Our Discord Bot!'),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text('Failed to initialize'),
+          Text('Please try again later'),
+        ],
+      ),
     );
   }
 }

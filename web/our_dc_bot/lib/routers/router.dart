@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:our_dc_bot/layouts/dashboard.dart';
-import 'package:our_dc_bot/pages/my-info.dart';
+import 'package:our_dc_bot/pages/my_info.dart';
 import 'package:our_dc_bot/pages/signin.dart';
 import 'package:our_dc_bot/routers/enum.dart';
 
