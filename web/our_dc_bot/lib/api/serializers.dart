@@ -13,6 +13,10 @@ part 'serializers.g.dart';
   UserInformation,
   VerifyLoginCodeRequest,
   VerifyLoginCodeResponse,
+  ListStickerResponse,
+  Sticker,
+  StickerImage,
+  AddStickerRequest,
 ])
 final Serializers serializers =
     (_$serializers.toBuilder()..addPlugin(StandardJsonPlugin())).build();

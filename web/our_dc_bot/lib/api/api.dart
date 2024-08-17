@@ -181,6 +181,35 @@ class API {
 
     return verifyResult;
   }
+
+  Future<void> addSticker(String guildID, String name, String imageURL) {
+    print('addSticker: $guildID, $name, $imageURL');
+    return _normalJsonAPI(
+      'POST',
+      '/api/v1/guilds/$guildID/sticker-images',
+      requestData: AddStickerRequest(
+        (b) => b
+          ..stickerName = name
+          ..imageURL = imageURL,
+      ),
+    );
+  }
+
+  Future<ListStickerResponse> listSticker(
+      String guildID, int page, int limit) async {
+    return _normalJsonAPI(
+      'GET',
+      '/api/v1/guilds/$guildID/stickers?page=$page&limit=$limit',
+      respSerializer: ListStickerResponse.serializer,
+    );
+  }
+
+  Future<void> deleteSticker(int stickerID) {
+    return _normalJsonAPI(
+      'DELETE',
+      '/api/v1/stickers/$stickerID',
+    );
+  }
 }
 
 Future<T> _isolateDeserializeJson<T>(

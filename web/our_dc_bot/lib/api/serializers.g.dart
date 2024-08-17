@@ -7,11 +7,21 @@ part of 'serializers.dart';
 // **************************************************************************
 
 Serializers _$serializers = (new Serializers().toBuilder()
+      ..add(AddStickerRequest.serializer)
       ..add(ErrorResponse.serializer)
+      ..add(ListStickerResponse.serializer)
       ..add(LoginCode.serializer)
+      ..add(Sticker.serializer)
+      ..add(StickerImage.serializer)
       ..add(UserInformation.serializer)
       ..add(VerifyLoginCodeRequest.serializer)
       ..add(VerifyLoginCodeResponse.serializer)
+      ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(Sticker)]),
+          () => new ListBuilder<Sticker>())
+      ..addBuilderFactory(
+          const FullType(BuiltList, const [const FullType(StickerImage)]),
+          () => new ListBuilder<StickerImage>())
       ..addBuilderFactory(
           const FullType(BuiltList, const [const FullType(String)]),
           () => new ListBuilder<String>()))

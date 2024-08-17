@@ -13,6 +13,13 @@ Serializer<VerifyLoginCodeRequest> _$verifyLoginCodeRequestSerializer =
     new _$VerifyLoginCodeRequestSerializer();
 Serializer<VerifyLoginCodeResponse> _$verifyLoginCodeResponseSerializer =
     new _$VerifyLoginCodeResponseSerializer();
+Serializer<ListStickerResponse> _$listStickerResponseSerializer =
+    new _$ListStickerResponseSerializer();
+Serializer<Sticker> _$stickerSerializer = new _$StickerSerializer();
+Serializer<StickerImage> _$stickerImageSerializer =
+    new _$StickerImageSerializer();
+Serializer<AddStickerRequest> _$addStickerRequestSerializer =
+    new _$AddStickerRequestSerializer();
 
 class _$LoginCodeSerializer implements StructuredSerializer<LoginCode> {
   @override
@@ -210,6 +217,213 @@ class _$VerifyLoginCodeResponseSerializer
           break;
         case 'token':
           result.token = serializers.deserialize(value,
+              specifiedType: const FullType(String))! as String;
+          break;
+      }
+    }
+
+    return result.build();
+  }
+}
+
+class _$ListStickerResponseSerializer
+    implements StructuredSerializer<ListStickerResponse> {
+  @override
+  final Iterable<Type> types = const [
+    ListStickerResponse,
+    _$ListStickerResponse
+  ];
+  @override
+  final String wireName = 'ListStickerResponse';
+
+  @override
+  Iterable<Object?> serialize(
+      Serializers serializers, ListStickerResponse object,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = <Object?>[
+      'total_count',
+      serializers.serialize(object.totalCount,
+          specifiedType: const FullType(int)),
+      'stickers',
+      serializers.serialize(object.stickers,
+          specifiedType:
+              const FullType(BuiltList, const [const FullType(Sticker)])),
+    ];
+
+    return result;
+  }
+
+  @override
+  ListStickerResponse deserialize(
+      Serializers serializers, Iterable<Object?> serialized,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = new ListStickerResponseBuilder();
+
+    final iterator = serialized.iterator;
+    while (iterator.moveNext()) {
+      final key = iterator.current! as String;
+      iterator.moveNext();
+      final Object? value = iterator.current;
+      switch (key) {
+        case 'total_count':
+          result.totalCount = serializers.deserialize(value,
+              specifiedType: const FullType(int))! as int;
+          break;
+        case 'stickers':
+          result.stickers.replace(serializers.deserialize(value,
+                  specifiedType: const FullType(
+                      BuiltList, const [const FullType(Sticker)]))!
+              as BuiltList<Object?>);
+          break;
+      }
+    }
+
+    return result.build();
+  }
+}
+
+class _$StickerSerializer implements StructuredSerializer<Sticker> {
+  @override
+  final Iterable<Type> types = const [Sticker, _$Sticker];
+  @override
+  final String wireName = 'Sticker';
+
+  @override
+  Iterable<Object?> serialize(Serializers serializers, Sticker object,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = <Object?>[
+      'id',
+      serializers.serialize(object.id, specifiedType: const FullType(int)),
+      'sticker_name',
+      serializers.serialize(object.stickerName,
+          specifiedType: const FullType(String)),
+      'images',
+      serializers.serialize(object.images,
+          specifiedType:
+              const FullType(BuiltList, const [const FullType(StickerImage)])),
+    ];
+
+    return result;
+  }
+
+  @override
+  Sticker deserialize(Serializers serializers, Iterable<Object?> serialized,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = new StickerBuilder();
+
+    final iterator = serialized.iterator;
+    while (iterator.moveNext()) {
+      final key = iterator.current! as String;
+      iterator.moveNext();
+      final Object? value = iterator.current;
+      switch (key) {
+        case 'id':
+          result.id = serializers.deserialize(value,
+              specifiedType: const FullType(int))! as int;
+          break;
+        case 'sticker_name':
+          result.stickerName = serializers.deserialize(value,
+              specifiedType: const FullType(String))! as String;
+          break;
+        case 'images':
+          result.images.replace(serializers.deserialize(value,
+                  specifiedType: const FullType(
+                      BuiltList, const [const FullType(StickerImage)]))!
+              as BuiltList<Object?>);
+          break;
+      }
+    }
+
+    return result.build();
+  }
+}
+
+class _$StickerImageSerializer implements StructuredSerializer<StickerImage> {
+  @override
+  final Iterable<Type> types = const [StickerImage, _$StickerImage];
+  @override
+  final String wireName = 'StickerImage';
+
+  @override
+  Iterable<Object?> serialize(Serializers serializers, StickerImage object,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = <Object?>[
+      'id',
+      serializers.serialize(object.id, specifiedType: const FullType(int)),
+      'url',
+      serializers.serialize(object.url, specifiedType: const FullType(String)),
+    ];
+
+    return result;
+  }
+
+  @override
+  StickerImage deserialize(
+      Serializers serializers, Iterable<Object?> serialized,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = new StickerImageBuilder();
+
+    final iterator = serialized.iterator;
+    while (iterator.moveNext()) {
+      final key = iterator.current! as String;
+      iterator.moveNext();
+      final Object? value = iterator.current;
+      switch (key) {
+        case 'id':
+          result.id = serializers.deserialize(value,
+              specifiedType: const FullType(int))! as int;
+          break;
+        case 'url':
+          result.url = serializers.deserialize(value,
+              specifiedType: const FullType(String))! as String;
+          break;
+      }
+    }
+
+    return result.build();
+  }
+}
+
+class _$AddStickerRequestSerializer
+    implements StructuredSerializer<AddStickerRequest> {
+  @override
+  final Iterable<Type> types = const [AddStickerRequest, _$AddStickerRequest];
+  @override
+  final String wireName = 'AddStickerRequest';
+
+  @override
+  Iterable<Object?> serialize(Serializers serializers, AddStickerRequest object,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = <Object?>[
+      'sticker_name',
+      serializers.serialize(object.stickerName,
+          specifiedType: const FullType(String)),
+      'image_url',
+      serializers.serialize(object.imageURL,
+          specifiedType: const FullType(String)),
+    ];
+
+    return result;
+  }
+
+  @override
+  AddStickerRequest deserialize(
+      Serializers serializers, Iterable<Object?> serialized,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = new AddStickerRequestBuilder();
+
+    final iterator = serialized.iterator;
+    while (iterator.moveNext()) {
+      final key = iterator.current! as String;
+      iterator.moveNext();
+      final Object? value = iterator.current;
+      switch (key) {
+        case 'sticker_name':
+          result.stickerName = serializers.deserialize(value,
+              specifiedType: const FullType(String))! as String;
+          break;
+        case 'image_url':
+          result.imageURL = serializers.deserialize(value,
               specifiedType: const FullType(String))! as String;
           break;
       }
@@ -632,6 +846,443 @@ class VerifyLoginCodeResponseBuilder
                 isVerified, r'VerifyLoginCodeResponse', 'isVerified'),
             token: BuiltValueNullFieldError.checkNotNull(
                 token, r'VerifyLoginCodeResponse', 'token'));
+    replace(_$result);
+    return _$result;
+  }
+}
+
+class _$ListStickerResponse extends ListStickerResponse {
+  @override
+  final int totalCount;
+  @override
+  final BuiltList<Sticker> stickers;
+
+  factory _$ListStickerResponse(
+          [void Function(ListStickerResponseBuilder)? updates]) =>
+      (new ListStickerResponseBuilder()..update(updates))._build();
+
+  _$ListStickerResponse._({required this.totalCount, required this.stickers})
+      : super._() {
+    BuiltValueNullFieldError.checkNotNull(
+        totalCount, r'ListStickerResponse', 'totalCount');
+    BuiltValueNullFieldError.checkNotNull(
+        stickers, r'ListStickerResponse', 'stickers');
+  }
+
+  @override
+  ListStickerResponse rebuild(
+          void Function(ListStickerResponseBuilder) updates) =>
+      (toBuilder()..update(updates)).build();
+
+  @override
+  ListStickerResponseBuilder toBuilder() =>
+      new ListStickerResponseBuilder()..replace(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    return other is ListStickerResponse &&
+        totalCount == other.totalCount &&
+        stickers == other.stickers;
+  }
+
+  @override
+  int get hashCode {
+    var _$hash = 0;
+    _$hash = $jc(_$hash, totalCount.hashCode);
+    _$hash = $jc(_$hash, stickers.hashCode);
+    _$hash = $jf(_$hash);
+    return _$hash;
+  }
+
+  @override
+  String toString() {
+    return (newBuiltValueToStringHelper(r'ListStickerResponse')
+          ..add('totalCount', totalCount)
+          ..add('stickers', stickers))
+        .toString();
+  }
+}
+
+class ListStickerResponseBuilder
+    implements Builder<ListStickerResponse, ListStickerResponseBuilder> {
+  _$ListStickerResponse? _$v;
+
+  int? _totalCount;
+  int? get totalCount => _$this._totalCount;
+  set totalCount(int? totalCount) => _$this._totalCount = totalCount;
+
+  ListBuilder<Sticker>? _stickers;
+  ListBuilder<Sticker> get stickers =>
+      _$this._stickers ??= new ListBuilder<Sticker>();
+  set stickers(ListBuilder<Sticker>? stickers) => _$this._stickers = stickers;
+
+  ListStickerResponseBuilder();
+
+  ListStickerResponseBuilder get _$this {
+    final $v = _$v;
+    if ($v != null) {
+      _totalCount = $v.totalCount;
+      _stickers = $v.stickers.toBuilder();
+      _$v = null;
+    }
+    return this;
+  }
+
+  @override
+  void replace(ListStickerResponse other) {
+    ArgumentError.checkNotNull(other, 'other');
+    _$v = other as _$ListStickerResponse;
+  }
+
+  @override
+  void update(void Function(ListStickerResponseBuilder)? updates) {
+    if (updates != null) updates(this);
+  }
+
+  @override
+  ListStickerResponse build() => _build();
+
+  _$ListStickerResponse _build() {
+    _$ListStickerResponse _$result;
+    try {
+      _$result = _$v ??
+          new _$ListStickerResponse._(
+              totalCount: BuiltValueNullFieldError.checkNotNull(
+                  totalCount, r'ListStickerResponse', 'totalCount'),
+              stickers: stickers.build());
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'stickers';
+        stickers.build();
+      } catch (e) {
+        throw new BuiltValueNestedFieldError(
+            r'ListStickerResponse', _$failedField, e.toString());
+      }
+      rethrow;
+    }
+    replace(_$result);
+    return _$result;
+  }
+}
+
+class _$Sticker extends Sticker {
+  @override
+  final int id;
+  @override
+  final String stickerName;
+  @override
+  final BuiltList<StickerImage> images;
+
+  factory _$Sticker([void Function(StickerBuilder)? updates]) =>
+      (new StickerBuilder()..update(updates))._build();
+
+  _$Sticker._(
+      {required this.id, required this.stickerName, required this.images})
+      : super._() {
+    BuiltValueNullFieldError.checkNotNull(id, r'Sticker', 'id');
+    BuiltValueNullFieldError.checkNotNull(
+        stickerName, r'Sticker', 'stickerName');
+    BuiltValueNullFieldError.checkNotNull(images, r'Sticker', 'images');
+  }
+
+  @override
+  Sticker rebuild(void Function(StickerBuilder) updates) =>
+      (toBuilder()..update(updates)).build();
+
+  @override
+  StickerBuilder toBuilder() => new StickerBuilder()..replace(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    return other is Sticker &&
+        id == other.id &&
+        stickerName == other.stickerName &&
+        images == other.images;
+  }
+
+  @override
+  int get hashCode {
+    var _$hash = 0;
+    _$hash = $jc(_$hash, id.hashCode);
+    _$hash = $jc(_$hash, stickerName.hashCode);
+    _$hash = $jc(_$hash, images.hashCode);
+    _$hash = $jf(_$hash);
+    return _$hash;
+  }
+
+  @override
+  String toString() {
+    return (newBuiltValueToStringHelper(r'Sticker')
+          ..add('id', id)
+          ..add('stickerName', stickerName)
+          ..add('images', images))
+        .toString();
+  }
+}
+
+class StickerBuilder implements Builder<Sticker, StickerBuilder> {
+  _$Sticker? _$v;
+
+  int? _id;
+  int? get id => _$this._id;
+  set id(int? id) => _$this._id = id;
+
+  String? _stickerName;
+  String? get stickerName => _$this._stickerName;
+  set stickerName(String? stickerName) => _$this._stickerName = stickerName;
+
+  ListBuilder<StickerImage>? _images;
+  ListBuilder<StickerImage> get images =>
+      _$this._images ??= new ListBuilder<StickerImage>();
+  set images(ListBuilder<StickerImage>? images) => _$this._images = images;
+
+  StickerBuilder();
+
+  StickerBuilder get _$this {
+    final $v = _$v;
+    if ($v != null) {
+      _id = $v.id;
+      _stickerName = $v.stickerName;
+      _images = $v.images.toBuilder();
+      _$v = null;
+    }
+    return this;
+  }
+
+  @override
+  void replace(Sticker other) {
+    ArgumentError.checkNotNull(other, 'other');
+    _$v = other as _$Sticker;
+  }
+
+  @override
+  void update(void Function(StickerBuilder)? updates) {
+    if (updates != null) updates(this);
+  }
+
+  @override
+  Sticker build() => _build();
+
+  _$Sticker _build() {
+    _$Sticker _$result;
+    try {
+      _$result = _$v ??
+          new _$Sticker._(
+              id: BuiltValueNullFieldError.checkNotNull(id, r'Sticker', 'id'),
+              stickerName: BuiltValueNullFieldError.checkNotNull(
+                  stickerName, r'Sticker', 'stickerName'),
+              images: images.build());
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'images';
+        images.build();
+      } catch (e) {
+        throw new BuiltValueNestedFieldError(
+            r'Sticker', _$failedField, e.toString());
+      }
+      rethrow;
+    }
+    replace(_$result);
+    return _$result;
+  }
+}
+
+class _$StickerImage extends StickerImage {
+  @override
+  final int id;
+  @override
+  final String url;
+
+  factory _$StickerImage([void Function(StickerImageBuilder)? updates]) =>
+      (new StickerImageBuilder()..update(updates))._build();
+
+  _$StickerImage._({required this.id, required this.url}) : super._() {
+    BuiltValueNullFieldError.checkNotNull(id, r'StickerImage', 'id');
+    BuiltValueNullFieldError.checkNotNull(url, r'StickerImage', 'url');
+  }
+
+  @override
+  StickerImage rebuild(void Function(StickerImageBuilder) updates) =>
+      (toBuilder()..update(updates)).build();
+
+  @override
+  StickerImageBuilder toBuilder() => new StickerImageBuilder()..replace(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    return other is StickerImage && id == other.id && url == other.url;
+  }
+
+  @override
+  int get hashCode {
+    var _$hash = 0;
+    _$hash = $jc(_$hash, id.hashCode);
+    _$hash = $jc(_$hash, url.hashCode);
+    _$hash = $jf(_$hash);
+    return _$hash;
+  }
+
+  @override
+  String toString() {
+    return (newBuiltValueToStringHelper(r'StickerImage')
+          ..add('id', id)
+          ..add('url', url))
+        .toString();
+  }
+}
+
+class StickerImageBuilder
+    implements Builder<StickerImage, StickerImageBuilder> {
+  _$StickerImage? _$v;
+
+  int? _id;
+  int? get id => _$this._id;
+  set id(int? id) => _$this._id = id;
+
+  String? _url;
+  String? get url => _$this._url;
+  set url(String? url) => _$this._url = url;
+
+  StickerImageBuilder();
+
+  StickerImageBuilder get _$this {
+    final $v = _$v;
+    if ($v != null) {
+      _id = $v.id;
+      _url = $v.url;
+      _$v = null;
+    }
+    return this;
+  }
+
+  @override
+  void replace(StickerImage other) {
+    ArgumentError.checkNotNull(other, 'other');
+    _$v = other as _$StickerImage;
+  }
+
+  @override
+  void update(void Function(StickerImageBuilder)? updates) {
+    if (updates != null) updates(this);
+  }
+
+  @override
+  StickerImage build() => _build();
+
+  _$StickerImage _build() {
+    final _$result = _$v ??
+        new _$StickerImage._(
+            id: BuiltValueNullFieldError.checkNotNull(
+                id, r'StickerImage', 'id'),
+            url: BuiltValueNullFieldError.checkNotNull(
+                url, r'StickerImage', 'url'));
+    replace(_$result);
+    return _$result;
+  }
+}
+
+class _$AddStickerRequest extends AddStickerRequest {
+  @override
+  final String stickerName;
+  @override
+  final String imageURL;
+
+  factory _$AddStickerRequest(
+          [void Function(AddStickerRequestBuilder)? updates]) =>
+      (new AddStickerRequestBuilder()..update(updates))._build();
+
+  _$AddStickerRequest._({required this.stickerName, required this.imageURL})
+      : super._() {
+    BuiltValueNullFieldError.checkNotNull(
+        stickerName, r'AddStickerRequest', 'stickerName');
+    BuiltValueNullFieldError.checkNotNull(
+        imageURL, r'AddStickerRequest', 'imageURL');
+  }
+
+  @override
+  AddStickerRequest rebuild(void Function(AddStickerRequestBuilder) updates) =>
+      (toBuilder()..update(updates)).build();
+
+  @override
+  AddStickerRequestBuilder toBuilder() =>
+      new AddStickerRequestBuilder()..replace(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    return other is AddStickerRequest &&
+        stickerName == other.stickerName &&
+        imageURL == other.imageURL;
+  }
+
+  @override
+  int get hashCode {
+    var _$hash = 0;
+    _$hash = $jc(_$hash, stickerName.hashCode);
+    _$hash = $jc(_$hash, imageURL.hashCode);
+    _$hash = $jf(_$hash);
+    return _$hash;
+  }
+
+  @override
+  String toString() {
+    return (newBuiltValueToStringHelper(r'AddStickerRequest')
+          ..add('stickerName', stickerName)
+          ..add('imageURL', imageURL))
+        .toString();
+  }
+}
+
+class AddStickerRequestBuilder
+    implements Builder<AddStickerRequest, AddStickerRequestBuilder> {
+  _$AddStickerRequest? _$v;
+
+  String? _stickerName;
+  String? get stickerName => _$this._stickerName;
+  set stickerName(String? stickerName) => _$this._stickerName = stickerName;
+
+  String? _imageURL;
+  String? get imageURL => _$this._imageURL;
+  set imageURL(String? imageURL) => _$this._imageURL = imageURL;
+
+  AddStickerRequestBuilder();
+
+  AddStickerRequestBuilder get _$this {
+    final $v = _$v;
+    if ($v != null) {
+      _stickerName = $v.stickerName;
+      _imageURL = $v.imageURL;
+      _$v = null;
+    }
+    return this;
+  }
+
+  @override
+  void replace(AddStickerRequest other) {
+    ArgumentError.checkNotNull(other, 'other');
+    _$v = other as _$AddStickerRequest;
+  }
+
+  @override
+  void update(void Function(AddStickerRequestBuilder)? updates) {
+    if (updates != null) updates(this);
+  }
+
+  @override
+  AddStickerRequest build() => _build();
+
+  _$AddStickerRequest _build() {
+    final _$result = _$v ??
+        new _$AddStickerRequest._(
+            stickerName: BuiltValueNullFieldError.checkNotNull(
+                stickerName, r'AddStickerRequest', 'stickerName'),
+            imageURL: BuiltValueNullFieldError.checkNotNull(
+                imageURL, r'AddStickerRequest', 'imageURL'));
     replace(_$result);
     return _$result;
   }
