@@ -96,6 +96,8 @@ func downloadAndCheckImage(ctx context.Context, url string) (result *downloadChe
 		return nil, xerrors.Errorf("new request: %w", err)
 	}
 
+	httpReq.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0")
+
 	httpResp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
 		return nil, xerrors.Errorf("do request: %w", err)
