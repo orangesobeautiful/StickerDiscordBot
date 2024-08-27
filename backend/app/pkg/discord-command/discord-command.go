@@ -1,7 +1,9 @@
 package discordcommand
 
 import (
-	"log/slog"
+	"context"
+
+	"backend/app/domain"
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/xerrors"
@@ -14,22 +16,23 @@ type Register interface {
 
 type Manager interface {
 	Register
-	RegisterAllCommand(s *discordgo.Session, guildID string) (err error)
+	MigrateAllCommand(ctx context.Context, s *discordgo.Session, guildID string) (err error)
 	GetHandler() func(s *discordgo.Session, i *discordgo.InteractionCreate)
-	DeleteAllCommand(s *discordgo.Session, guildID string) (err error)
 }
 
 var _ Manager = (*manager)(nil)
 
 type manager struct {
-	commands           []*discordgo.ApplicationCommand
-	commandHandlers    map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
-	registeredCommands []*discordgo.ApplicationCommand
+	commands        []*discordgo.ApplicationCommand
+	commandHandlers map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
+
+	commandsRepo domain.DiscordCommandRepository
 }
 
-func New() Manager {
+func New(commandsRepo domain.DiscordCommandRepository) Manager {
 	return &manager{
 		commandHandlers: make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)),
+		commandsRepo:    commandsRepo,
 	}
 }
 
@@ -55,17 +58,12 @@ func (d *manager) MustAdd(
 	}
 }
 
-func (d *manager) RegisterAllCommand(s *discordgo.Session, guildID string) (err error) {
-	for _, v := range d.commands {
-		slog.Info("register command: ", slog.String("name", v.Name))
+func (d *manager) MigrateAllCommand(ctx context.Context, s *discordgo.Session, guildID string) (err error) {
+	migrator := newCommnadMigrator(d.commandsRepo, s, guildID, d.commands)
 
-		var registedCmd *discordgo.ApplicationCommand
-		registedCmd, err = s.ApplicationCommandCreate(s.State.User.ID, guildID, v)
-		if err != nil {
-			return xerrors.Errorf("create command: '%v': %w", v.Name, err)
-		}
-
-		d.registeredCommands = append(d.registeredCommands, registedCmd)
+	err = migrator.Migrate(ctx)
+	if err != nil {
+		return xerrors.Errorf("migrate all command: %w", err)
 	}
 
 	return nil
@@ -80,16 +78,4 @@ func (d *manager) GetHandler() func(s *discordgo.Session, i *discordgo.Interacti
 
 		handler(s, i)
 	}
-}
-
-func (d *manager) DeleteAllCommand(s *discordgo.Session, guildID string) (err error) {
-	for _, v := range d.registeredCommands {
-		slog.Info("delete command: ", slog.String("id", v.ID), slog.String("name", v.Name))
-		err = s.ApplicationCommandDelete(s.State.User.ID, guildID, v.ID)
-		if err != nil {
-			return xerrors.Errorf("delete command: '%v': %w", v.Name, err)
-		}
-	}
-
-	return nil
 }
