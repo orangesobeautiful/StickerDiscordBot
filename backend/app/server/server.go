@@ -13,6 +13,7 @@ import (
 	"backend/app/config"
 	domainresponse "backend/app/domain-response"
 	"backend/app/ent"
+	discordcommandRepo "backend/app/model/discord-command/repository"
 	discordmessage "backend/app/model/discord-message"
 	discordcommand "backend/app/pkg/discord-command"
 	objectstorage "backend/app/pkg/object-storage"
@@ -57,7 +58,6 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	eh := newErrHandler(uni)
 
 	e := newGinEngine(cfg.GetServer().GetCORS(), validate, eh)
-	s.initDCCommandManager(validate, eh)
 
 	err = s.initDBClient(cfg.GetDatabase())
 	if err != nil {
@@ -85,6 +85,10 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	}
 	s.bucketHandler = bucketHandler
 	rd := domainresponse.New(bucketHandler)
+
+	dcCommandRepo := discordcommandRepo.New(s.dbClient)
+
+	s.initDCCommandManager(validate, eh, dcCommandRepo)
 
 	dcMsgHandler, err := s.setModel(sessStore, e, s.dcCommandManager, rd)
 	if err != nil {
@@ -185,7 +189,7 @@ func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.
 func (s *Server) run(
 	ctx context.Context, serverCfg config.Server, dcCfg config.Discord, httpHandler http.Handler, dcMsgHandler discordmessage.HandlerInterface,
 ) (err error) {
-	err = s.runDiscordBot(dcCfg, dcMsgHandler)
+	err = s.runDiscordBot(ctx, dcCfg, dcMsgHandler)
 	if err != nil {
 		return xerrors.Errorf("run discord bot: %w", err)
 	}
@@ -206,7 +210,11 @@ func (s *Server) run(
 	return nil
 }
 
-func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage.HandlerInterface) (err error) {
+func (s *Server) runDiscordBot(
+	ctx context.Context,
+	dcCfg config.Discord,
+	dcMsgHandler discordmessage.HandlerInterface,
+) (err error) {
 	discordSess, err := discordgo.New("Bot " + dcCfg.GetToken())
 	if err != nil {
 		return xerrors.Errorf("new discord session: %w", err)
@@ -222,10 +230,14 @@ func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage
 	}
 
 	if !dcCfg.GetDisableRegisterCommand() {
-		err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
+		slog.Info("migrate all command")
+
+		err = s.dcCommandManager.MigrateAllCommand(ctx, discordSess, "")
 		if err != nil {
-			return xerrors.Errorf("register all command: %w", err)
+			return xerrors.Errorf("migrate all command: %w", err)
 		}
+
+		slog.Info("migrate all command done")
 	}
 
 	discordSess.AddHandler(s.dcCommandManager.GetHandler())
@@ -253,10 +265,6 @@ func (s *Server) runHTTPServer(serverCfg config.Server, httpHandler http.Handler
 }
 
 func (s *Server) Close() (err error) {
-	err = s.dcCommandManager.DeleteAllCommand(s.dcSess, "")
-	if err != nil {
-		return xerrors.Errorf("delete all command: %w", err)
-	}
 	err = s.dcSess.Close()
 	if err != nil {
 		return xerrors.Errorf("discord session close: %w", err)
