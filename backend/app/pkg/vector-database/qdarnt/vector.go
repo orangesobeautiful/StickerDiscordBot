@@ -94,7 +94,7 @@ func (q *qdrant) Search(
 	scorePoints := searchResp.GetResult()
 	for _, scorePoint := range scorePoints {
 		resp.Data = append(resp.Data, vectordatabase.SearchResponseData{
-			ID:    uint(scorePoint.GetId().GetNum()),
+			ID:    scorePoint.GetId().GetNum(),
 			Score: scorePoint.GetScore(),
 		})
 	}

@@ -213,7 +213,7 @@ func (m *commnadMigrator) registerCommand(ctx context.Context, cmd *discordgo.Ap
 		return xerrors.Errorf("create discord command: %w", err)
 	}
 
-	cmdChecksum := [32]byte(commandSha256Sum(cmd))
+	cmdChecksum := commandSha256Sum(cmd)
 	err = m.commandsRepo.Add(ctx, cmd.Name, registedCmd.ID, cmdChecksum[:])
 	if err != nil {
 		return xerrors.Errorf("add command to repository: %w", err)

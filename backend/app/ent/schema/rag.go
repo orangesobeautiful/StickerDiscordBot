@@ -40,6 +40,7 @@ type RAGReferenceText struct {
 
 func (RAGReferenceText) Fields() []ent.Field {
 	return []ent.Field{
+		field.Uint64("id"),
 		field.String("text"),
 		field.Bytes("embed_content"),
 		field.JSON("embed_metadata", EmbedMetadata{}),

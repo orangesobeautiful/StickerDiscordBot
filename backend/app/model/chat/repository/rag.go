@@ -88,7 +88,7 @@ func (r *chatRepository) SearchRAGReferencePoolText(
 
 	result = make([]string, len(resp.Data))
 	for i, data := range resp.Data {
-		result[i], err = r.GetRAGReferenceTextContent(ctx, int(data.ID))
+		result[i], err = r.GetRAGReferenceTextContent(ctx, data.ID)
 		if err != nil {
 			return nil, xerrors.Errorf("get rag reference text content: %w", err)
 		}
@@ -99,7 +99,7 @@ func (r *chatRepository) SearchRAGReferencePoolText(
 
 func (r *chatRepository) CreateRAGReferenceText(
 	ctx context.Context, ragReferencePoolID int, text string, embedContent []float32,
-) (id int, err error) {
+) (id uint64, err error) {
 	var newRAGText *ent.RAGReferenceText
 
 	embedMetadata := schema.EmbedMetadata{
@@ -154,7 +154,7 @@ func float32EncodeToBinary(fs []float32) []byte {
 	return bf
 }
 
-func (r *chatRepository) GetRAGReferenceTextContent(ctx context.Context, id int) (content string, err error) {
+func (r *chatRepository) GetRAGReferenceTextContent(ctx context.Context, id uint64) (content string, err error) {
 	ragText, err := r.GetEntClient(ctx).RAGReferenceText.
 		Query().
 		Where(ragreferencetext.ID(id)).
@@ -186,7 +186,7 @@ func (r *chatRepository) ListRAGReferenceTexts(
 }
 
 func (r *chatRepository) GetRAGReferenceTextWithGuildByID(
-	ctx context.Context, ragReferenceTextID int,
+	ctx context.Context, ragReferenceTextID uint64,
 ) (ragReferenceText *ent.RAGReferenceText, err error) {
 	ragReferenceText, err = r.GetEntClient(ctx).RAGReferenceText.
 		Query().
@@ -207,7 +207,7 @@ func (r *chatRepository) GetRAGReferenceTextWithGuildByID(
 }
 
 func (r *chatRepository) DeleteRAGReferenceText(
-	ctx context.Context, ragReferenceTextID int,
+	ctx context.Context, ragReferenceTextID uint64,
 ) (err error) {
 	err = r.WithTx(ctx, func(ctx context.Context) error {
 		err = r.GetEntClient(ctx).RAGReferenceText.
