@@ -31,17 +31,17 @@ type ChatRepository interface {
 		ctx context.Context, ragReferencePoolID []int, reqEmbedding []float32, topK uint) (result []string, err error)
 
 	CreateRAGReferenceText(
-		ctx context.Context, ragReferencePoolID int, text string, embedContent []float32) (id int, err error)
-	GetRAGReferenceTextContent(ctx context.Context, ragReferenceTextID int) (content string, err error)
+		ctx context.Context, ragReferencePoolID int, text string, embedContent []float32) (id uint64, err error)
+	GetRAGReferenceTextContent(ctx context.Context, ragReferenceTextID uint64) (content string, err error)
 	ListRAGReferenceTexts(ctx context.Context, ragReferencePoolID int, limit, offset int) (result ListRAGReferenceTextsResult, err error)
-	GetRAGReferenceTextWithGuildByID(ctx context.Context, ragReferenceTextID int) (ragReferenceText *ent.RAGReferenceText, err error)
-	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID int) (err error)
+	GetRAGReferenceTextWithGuildByID(ctx context.Context, ragReferenceTextID uint64) (ragReferenceText *ent.RAGReferenceText, err error)
+	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID uint64) (err error)
 }
 
 type ChatUsecase interface {
 	Chat(ctx context.Context, guildID string, message string) (replyMessage string, err error)
 
-	CreateRAGReferenceText(ctx context.Context, ragReferencePoolID int, text string) (id int, err error)
+	CreateRAGReferenceText(ctx context.Context, ragReferencePoolID int, text string) (id uint64, err error)
 	ListRAGReferenceTexts(ctx context.Context, ragReferencePoolID int, limit, offset int) (result ListRAGReferenceTextsResult, err error)
-	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID int) (err error)
+	DeleteRAGReferenceText(ctx context.Context, ragReferenceTextID uint64) (err error)
 }

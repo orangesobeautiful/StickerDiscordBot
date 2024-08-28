@@ -12,7 +12,7 @@ import (
 
 func (u *chatUsecase) CreateRAGReferenceText(
 	ctx context.Context, ragReferencePoolID int, text string,
-) (id int, err error) {
+) (id uint64, err error) {
 	resp, err := u.openaiClient.CreateEmbeddings(ctx,
 		openai.EmbeddingRequestStrings{
 			Input:          []string{text},
@@ -44,7 +44,7 @@ func (u *chatUsecase) ListRAGReferenceTexts(
 }
 
 func (u *chatUsecase) DeleteRAGReferenceText(
-	ctx context.Context, ragReferenceTextID int,
+	ctx context.Context, ragReferenceTextID uint64,
 ) (err error) {
 	err = u.chatRepo.DeleteRAGReferenceText(ctx, ragReferenceTextID)
 	if err != nil {

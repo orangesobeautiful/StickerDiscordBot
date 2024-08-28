@@ -8,7 +8,7 @@ func StickerListWithSearchName(searchName string) StickerListOptionFunc {
 	}
 }
 
-func StickerListWithImages(limit uint) StickerListOptionFunc {
+func StickerListWithImages(limit uint32) StickerListOptionFunc {
 	return func(o *listOption) {
 		o.withImages = true
 		o.withImagesLimit = limit
@@ -18,7 +18,7 @@ func StickerListWithImages(limit uint) StickerListOptionFunc {
 type listOption struct {
 	searchName      string
 	withImages      bool
-	withImagesLimit uint
+	withImagesLimit uint32
 }
 
 func NewStickerListOption(opts ...StickerListOptionFunc) *listOption {
@@ -38,6 +38,6 @@ func (l *listOption) GetWithImages() bool {
 	return l.withImages
 }
 
-func (l *listOption) GetWithImagesLimit() uint {
+func (l *listOption) GetWithImagesLimit() uint32 {
 	return l.withImagesLimit
 }

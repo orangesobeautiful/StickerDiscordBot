@@ -145,7 +145,7 @@ func (c *chatController) ginDeleteRAGReferenceText(ctx *gin.Context) (*ginext.Em
 		return nil, xerrors.Errorf("get rag reference text id from context: %w", err)
 	}
 
-	err = c.deleteRAGReferenceText(ctx, ragReferenceTextID)
+	err = c.deleteRAGReferenceText(ctx, uint64(ragReferenceTextID))
 	if err != nil {
 		return nil, xerrors.Errorf("delete rag reference text: %w", err)
 	}
@@ -153,7 +153,7 @@ func (c *chatController) ginDeleteRAGReferenceText(ctx *gin.Context) (*ginext.Em
 	return nil, nil
 }
 
-func (c *chatController) deleteRAGReferenceText(ctx context.Context, ragReferenceTextID int) error {
+func (c *chatController) deleteRAGReferenceText(ctx context.Context, ragReferenceTextID uint64) error {
 	err := c.chatUsecase.DeleteRAGReferenceText(ctx, ragReferenceTextID)
 	if err != nil {
 		return xerrors.Errorf("delete rag reference text: %w", err)

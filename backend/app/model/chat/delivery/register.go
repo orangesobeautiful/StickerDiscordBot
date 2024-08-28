@@ -44,7 +44,7 @@ func (c *chatController) registerGinRouter(apiGroup *gin.RouterGroup) {
 
 func (c *chatController) isGinUserGuildOwnResource(
 	ctx *gin.Context, resourceIDParam, resourceLabel string,
-	guildOwnResourceFunc func(ctx context.Context, guildID string, ragReferencePoolID int) (isOwn bool, err error),
+	guildOwnResourceFunc func(ctx context.Context, guildID string, resourceID int) (isOwn bool, err error),
 ) {
 	user := c.auth.MustGetUserFromContext(ctx)
 
@@ -76,7 +76,13 @@ func (c *chatController) specifyRAGReferencePoolIDAuth(ctx *gin.Context) {
 }
 
 func (c *chatController) specifyRAGReferenceTextIDAuth(ctx *gin.Context) {
-	c.isGinUserGuildOwnResource(ctx, ragReferenceTextIDParam, "rag reference text", c.dcGuildUsecase.IsGuildOwnRAGReferenceText)
+	c.isGinUserGuildOwnResource(
+		ctx, ragReferenceTextIDParam,
+		"rag reference text",
+		func(ctx context.Context, guildID string, resourceID int) (isOwn bool, err error) {
+			return c.dcGuildUsecase.IsGuildOwnRAGReferenceText(ctx, guildID, uint64(resourceID))
+		},
+	)
 }
 
 func (c *chatController) registerDiscordCommand(dcCmdRegister discordcommand.Register) {

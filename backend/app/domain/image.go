@@ -9,7 +9,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type ImgSaveType uint
+type ImgSaveType int
 
 const (
 	ImgSaveTypeNone ImgSaveType = iota

@@ -23,7 +23,12 @@ func New(client *ent.Client) domain.DiscordCommandRepository {
 	}
 }
 
-func (r *discordCommandRepository) Add(ctx context.Context, name string, discordID string, sha256Checksum []byte) (err error) {
+func (r *discordCommandRepository) Add(
+	ctx context.Context,
+	name string,
+	discordID string,
+	sha256Checksum []byte,
+) (err error) {
 	_, err = r.GetEntClient(ctx).DiscordCommand.
 		Create().
 		SetName(name).
@@ -37,7 +42,9 @@ func (r *discordCommandRepository) Add(ctx context.Context, name string, discord
 	return nil
 }
 
-func (r *discordCommandRepository) GetAll(ctx context.Context) (commands []*ent.DiscordCommand, err error) {
+func (r *discordCommandRepository) GetAll(
+	ctx context.Context,
+) (commands []*ent.DiscordCommand, err error) {
 	commands, err = r.GetEntClient(ctx).DiscordCommand.
 		Query().
 		All(ctx)
@@ -48,7 +55,10 @@ func (r *discordCommandRepository) GetAll(ctx context.Context) (commands []*ent.
 	return commands, nil
 }
 
-func (r *discordCommandRepository) UpdateByName(ctx context.Context, name string, discordID string, sha256Checksum []byte) (err error) {
+func (r *discordCommandRepository) UpdateByName(
+	ctx context.Context,
+	name string, discordID string, sha256Checksum []byte,
+) (err error) {
 	_, err = r.GetEntClient(ctx).DiscordCommand.
 		Update().
 		Where(
