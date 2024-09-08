@@ -39,7 +39,7 @@ func (m *MeilisearchMigrator) v1Transaction() func(context.Context) error {
 func (m *MeilisearchMigrator) v1StickerIndex(ctx context.Context) error {
 	var err error
 
-	stickerHandler := newV1StickerHandler(m, m.indexNamer.GetStickerIndex())
+	stickerHandler := newV1StickerHandler(m, m.indexNamer.Sticker())
 
 	err = stickerHandler.CreateIndex(ctx)
 	if err != nil {
@@ -90,7 +90,7 @@ func (h *v1StickerHandler) CreateIndex(ctx context.Context) error {
 			return h.meilisearch.CreateIndexWithContext(
 				ctx,
 				&meilisearch.IndexConfig{
-					Uid:        h.indexNamer.GetStickerIndex(),
+					Uid:        h.indexNamer.Sticker(),
 					PrimaryKey: "id",
 				},
 			)
@@ -100,7 +100,7 @@ func (h *v1StickerHandler) CreateIndex(ctx context.Context) error {
 		return xerrors.Errorf("create meilisearch sticker index: %w", err)
 	}
 
-	h.stickerIndex, err = h.meilisearch.GetIndexWithContext(ctx, h.indexNamer.GetStickerIndex())
+	h.stickerIndex, err = h.meilisearch.GetIndexWithContext(ctx, h.indexNamer.Sticker())
 	if err != nil {
 		return xerrors.Errorf("get meilisearch sticker index: %w", err)
 	}

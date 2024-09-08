@@ -17,7 +17,7 @@ type MeilisearchMigrator struct {
 
 	fullTextSearchConfig config.FullTextSearchDatabase
 
-	indexNamer *meilisearchIndexName
+	indexNamer domain.MeilisearchIndexName
 }
 
 func NewMeilisearchMigrator(
@@ -31,22 +31,8 @@ func NewMeilisearchMigrator(
 		meilisearch:          meilisearchManager,
 		migrateRepo:          migrateRepo,
 		fullTextSearchConfig: fullTextSearchConfig,
-		indexNamer:           newMeilisearchIndexName(indexNamePrefix),
+		indexNamer:           domain.NewMeilisearchIndexName(indexNamePrefix),
 	}
-}
-
-type meilisearchIndexName struct {
-	prefix string
-}
-
-func newMeilisearchIndexName(prefix string) *meilisearchIndexName {
-	return &meilisearchIndexName{
-		prefix: prefix,
-	}
-}
-
-func (m *meilisearchIndexName) GetStickerIndex() string {
-	return m.prefix + "sticker"
 }
 
 func (m *MeilisearchMigrator) Migrate(ctx context.Context) error {

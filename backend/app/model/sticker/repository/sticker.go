@@ -10,6 +10,7 @@ import (
 	"backend/app/ent/sticker"
 	"backend/app/pkg/hserr"
 
+	"github.com/meilisearch/meilisearch-go"
 	"golang.org/x/xerrors"
 )
 
@@ -17,10 +18,18 @@ var _ domain.StickerRepository = (*stickerRepository)(nil)
 
 type stickerRepository struct {
 	*domain.BaseEntRepo
+
+	meilisearch meilisearch.IndexManager
 }
 
-func New(client *ent.Client) domain.StickerRepository {
+func New(
+	client *ent.Client,
+	meilisearchServiceManager meilisearch.ServiceManager,
+) domain.StickerRepository {
 	bRepo := domain.NewBaseEntRepo(client)
+
+	meilisearchServiceManager.Index("sticker")
+
 	return &stickerRepository{
 		BaseEntRepo: bRepo,
 	}
