@@ -53,6 +53,7 @@ func (c *discordGuildController) registerGinRouter(apiGroup *gin.RouterGroup) {
 
 	specifyGuildIDGroup.POST("/sticker-images", ginext.BindHandler(c.ginAddStickerImage))
 	specifyGuildIDGroup.GET("/stickers", ginext.BindHandler(c.ginListSticker))
+	specifyGuildIDGroup.GET("/sticker_by_name", ginext.BindHandler(c.ginGetStickerByName))
 
 	specifyStickerIDGroup := apiGroup.Group("/stickers/:" + stickerIDParam)
 	specifyStickerIDGroup.Use(authRequiredMiddleware, c.specifyStickerIDAuth)

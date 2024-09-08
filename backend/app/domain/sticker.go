@@ -22,6 +22,7 @@ type StickerUsecase interface {
 	AddImageByURL(ctx context.Context, guildID, name string, imageURL string) (err error)
 	RandSelectImage(ctx context.Context, guildID, stickerName string) (result *ent.Image, err error)
 
+	FindByName(ctx context.Context, guildID, name string) (sticker *ent.Sticker, err error)
 	ListStickers(ctx context.Context, guildID string, offset, limit int, opts ...StickerListOptionFunc) (stickers ListStickerResult, err error)
 	GetStickerAllImages(ctx context.Context, guildID, stickerName string) (result []*ent.Image, err error)
 

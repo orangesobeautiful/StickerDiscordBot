@@ -61,6 +61,15 @@ func (s *stickerUsecase) RandSelectImage(ctx context.Context, guildID, stickerNa
 	return images[randSelectIndex], nil
 }
 
+func (s *stickerUsecase) FindByName(ctx context.Context, guildID, name string) (result *ent.Sticker, err error) {
+	result, err = s.stickerRepository.FindByName(ctx, guildID, name)
+	if err != nil {
+		return nil, xerrors.Errorf(": %w", err)
+	}
+
+	return result, nil
+}
+
 func (s *stickerUsecase) ListStickers(
 	ctx context.Context, guildID string, offset, limit int, opts ...domain.StickerListOptionFunc,
 ) (stickers domain.ListStickerResult, err error) {

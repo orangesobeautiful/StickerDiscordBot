@@ -2,9 +2,11 @@ package delivery
 
 import (
 	"context"
+	"net/http"
 
 	"backend/app/domain"
 	"backend/app/pkg/ginext"
+	"backend/app/pkg/hserr"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/xerrors"
@@ -36,6 +38,32 @@ func (c *discordGuildController) ginListSticker(ctx *gin.Context, req ginListSti
 	resp, err := c.listSticker(ctx, user.GuildID, req.Page, req.Limit, req.Search)
 	if err != nil {
 		return nil, xerrors.Errorf("list sticker: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *discordGuildController) ginGetStickerByName(ctx *gin.Context, req ginGetStickerByNameReq) (*ginGetStickerByNameResp, error) {
+	user := c.auth.MustGetUserFromContext(ctx)
+
+	sticker, err := c.stickerUsecase.FindByName(ctx, user.GuildID, req.Name)
+	if err != nil {
+		return nil, xerrors.Errorf("find sticker by name: %w", err)
+	}
+
+	if sticker == nil {
+		return nil, hserr.New(http.StatusNotFound, "sticker not found")
+	}
+
+	images, err := c.stickerUsecase.GetStickerAllImages(ctx, user.GuildID, req.Name)
+	if err != nil {
+		return nil, xerrors.Errorf("get sticker all image: %w", err)
+	}
+
+	sticker.Edges.Images = images
+
+	resp := &ginGetStickerByNameResp{
+		Sticker: c.rd.NewStickerFromEnt(sticker),
 	}
 
 	return resp, nil

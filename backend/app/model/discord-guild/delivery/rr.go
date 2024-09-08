@@ -90,6 +90,14 @@ func (l *listStickerResp) MarshalDiscordWebhookParams() *discordgo.WebhookParams
 	return result
 }
 
+type ginGetStickerByNameReq struct {
+	Name string `form:"name" binding:"required"`
+}
+
+type ginGetStickerByNameResp struct {
+	Sticker *domainresponse.Sticker `json:"sticker"`
+}
+
 type ginDeleteStickerReq struct {
 	StickerID int `uri:"sticker_id" binding:"required,gte=0"`
 }
