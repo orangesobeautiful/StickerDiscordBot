@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
+	"strconv"
 
 	"backend/app/domain"
 	"backend/app/ent"
 	"backend/app/ent/discordguild"
-	"backend/app/ent/predicate"
 	"backend/app/ent/sticker"
 	"backend/app/pkg/hserr"
 
@@ -19,57 +19,150 @@ var _ domain.StickerRepository = (*stickerRepository)(nil)
 type stickerRepository struct {
 	*domain.BaseEntRepo
 
-	meilisearch meilisearch.IndexManager
+	meilisearchSticker meilisearch.IndexManager
 }
 
 func New(
 	client *ent.Client,
 	meilisearchServiceManager meilisearch.ServiceManager,
+	meilisearchIndexName domain.MeilisearchIndexName,
 ) domain.StickerRepository {
 	bRepo := domain.NewBaseEntRepo(client)
 
-	meilisearchServiceManager.Index("sticker")
+	stickerIndexName := meilisearchIndexName.Sticker()
+	stickerIndex := meilisearchServiceManager.Index(stickerIndexName)
 
 	return &stickerRepository{
-		BaseEntRepo: bRepo,
+		BaseEntRepo:        bRepo,
+		meilisearchSticker: stickerIndex,
 	}
 }
 
 func (r *stickerRepository) CreateIfNotExist(ctx context.Context, guildID, name string) (stickerID int, err error) {
-	s, err := r.GetEntClient(ctx).Sticker.
+	handler := newCreateHandler(
+		r,
+		r.meilisearchSticker,
+		guildID,
+		name,
+	)
+
+	err = r.WithTx(ctx, handler.Do)
+	if err != nil {
+		return 0, xerrors.Errorf("create sticker: %w", err)
+	}
+
+	return handler.stickerResult.ID, nil
+}
+
+type createHandler struct {
+	*domain.BaseEntRepo
+
+	meilisearchSticker meilisearch.IndexManager
+
+	guildID string
+
+	name string
+
+	existed bool
+
+	stickerResult *ent.Sticker
+}
+
+func newCreateHandler(
+	repo *stickerRepository,
+	meilisearchSticker meilisearch.IndexManager,
+	guildID,
+	name string,
+) *createHandler {
+	return &createHandler{
+		BaseEntRepo:        repo.BaseEntRepo,
+		meilisearchSticker: meilisearchSticker,
+		guildID:            guildID,
+		name:               name,
+	}
+}
+
+func (h *createHandler) Do(ctx context.Context) error {
+	err := h.handleBaseDB(ctx)
+	if err != nil {
+		return xerrors.Errorf("handle base db: %w", err)
+	}
+
+	if h.existed {
+		return nil
+	}
+
+	err = h.handleMeilisearch(ctx)
+	if err != nil {
+		return xerrors.Errorf("handle meilisearch: %w", err)
+	}
+
+	return nil
+}
+
+func (h *createHandler) handleBaseDB(ctx context.Context) error {
+	s, err := h.GetEntClient(ctx).Sticker.
 		Query().
 		Where(
 			sticker.And(
-				sticker.HasGuildWith(discordguild.ID(guildID)),
-				sticker.Name(name),
+				sticker.HasGuildWith(discordguild.ID(h.guildID)),
+				sticker.Name(h.name),
 			),
 		).
 		Only(ctx)
-	if err != nil {
+	if err == nil {
+		h.existed = true
+	} else {
 		if ent.IsNotFound(err) {
-			stickerID, err = r.create(ctx, guildID, name)
-			if err != nil {
-				return 0, xerrors.Errorf("create sticker: %w", err)
-			}
-			return stickerID, nil
+			return h.createToBaseDB(ctx)
 		}
 
-		return 0, hserr.NewInternalError(err, "query sticker")
+		return hserr.NewInternalError(err, "query sticker")
 	}
 
-	return s.ID, nil
+	h.stickerResult = s
+
+	return nil
 }
 
-func (r *stickerRepository) create(ctx context.Context, guildID, name string) (int, error) {
-	s, err := r.GetEntClient(ctx).Sticker.
+func (h *createHandler) createToBaseDB(ctx context.Context) error {
+	s, err := h.GetEntClient(ctx).Sticker.
 		Create().
-		SetGuildID(guildID).
-		SetName(name).
+		SetGuildID(h.guildID).
+		SetName(h.name).
 		Save(ctx)
 	if err != nil {
-		return 0, hserr.NewInternalError(err, "create sticker")
+		return hserr.NewInternalError(err, "create sticker")
 	}
-	return s.ID, nil
+
+	h.stickerResult = s
+
+	return nil
+}
+
+func (h *createHandler) handleMeilisearch(ctx context.Context) error {
+	meilisearchSticker := newStickerMeilisearchEntity(
+		h.stickerResult.ID,
+		h.stickerResult.Name,
+		h.guildID,
+		h.stickerResult.CreatedAt,
+	)
+
+	taskInfo, err := h.meilisearchSticker.AddDocumentsWithContext(ctx, meilisearchSticker)
+	if err != nil {
+		return hserr.NewInternalError(err, "add sticker to meilisearch")
+	}
+
+	task, err := h.meilisearchSticker.WaitForTaskWithContext(ctx, taskInfo.TaskUID, 0)
+	if err != nil {
+		return hserr.NewInternalError(err, "wait for task")
+	}
+
+	if task.Status != meilisearch.TaskStatusSucceeded {
+		return hserr.NewInternalError(err, "task failed")
+	}
+
+	return nil
 }
 
 func (r *stickerRepository) GetStickerWithGuildByID(ctx context.Context, stickerID int) (result *ent.Sticker, err error) {
@@ -115,17 +208,23 @@ func (r *stickerRepository) List(
 ) (result domain.ListStickerResult, err error) {
 	listOpts := domain.NewStickerListOption(opts...)
 
-	queryFilter := r.GetEntClient(ctx).Sticker.
-		Query()
+	query := listOpts.GetSearchName()
 
-	andConds := []predicate.Sticker{
-		sticker.HasGuildWith(discordguild.IDEQ(guildID)),
+	searchResult, err := r.searchWithMeilisearch(ctx, guildID, query, offset, limit)
+	if err != nil {
+		return result, xerrors.Errorf("search with meilisearch: %w", err)
 	}
-	searchName := listOpts.GetSearchName()
-	if searchName != "" {
-		andConds = append(andConds, sticker.NameContainsFold(searchName))
+
+	matchedIDs := make([]int, len(searchResult.Hits))
+	for i, hit := range searchResult.Hits {
+		matchedIDs[i] = hit.ID
 	}
-	queryFilter = queryFilter.Where(sticker.And(andConds...))
+
+	queryFilter := r.GetEntClient(ctx).Sticker.
+		Query().
+		Where(
+			sticker.IDIn(matchedIDs...),
+		)
 
 	withImg := listOpts.GetWithImages()
 	if withImg {
@@ -137,20 +236,12 @@ func (r *stickerRepository) List(
 		})
 	}
 
-	total, err := queryFilter.Clone().Count(ctx)
-	if err != nil {
-		return result, hserr.NewInternalError(err, "query sticker count")
-	}
-
-	queryFilter = queryFilter.
-		Offset(offset).
-		Limit(limit)
 	ss, err := queryFilter.All(ctx)
 	if err != nil {
 		return result, hserr.NewInternalError(err, "query sticker")
 	}
 
-	result = domain.NewListResult(total, ss)
+	result = domain.NewListResult(searchResult.EstimatedTotalHits, ss)
 	return result, nil
 }
 
@@ -167,12 +258,85 @@ func (r *stickerRepository) AddImage(ctx context.Context, stickerID int, imageID
 }
 
 func (r *stickerRepository) Delete(ctx context.Context, id ...int) (err error) {
-	_, err = r.GetEntClient(ctx).Sticker.
+	handler := newDeleteHandler(
+		r,
+		r.meilisearchSticker,
+		id,
+	)
+
+	err = r.WithTx(ctx, handler.Do)
+	if err != nil {
+		return xerrors.Errorf("delete sticker: %w", err)
+	}
+
+	return nil
+}
+
+type deleteHandler struct {
+	*domain.BaseEntRepo
+
+	meilisearchSticker meilisearch.IndexManager
+
+	stickerIDs []int
+}
+
+func newDeleteHandler(
+	repo *stickerRepository,
+	meilisearchSticker meilisearch.IndexManager,
+	stickerIDs []int,
+) *deleteHandler {
+	return &deleteHandler{
+		BaseEntRepo:        repo.BaseEntRepo,
+		meilisearchSticker: meilisearchSticker,
+		stickerIDs:         stickerIDs,
+	}
+}
+
+func (h *deleteHandler) Do(ctx context.Context) error {
+	err := h.handleBaseDB(ctx)
+	if err != nil {
+		return xerrors.Errorf("handle base db: %w", err)
+	}
+
+	err = h.handleMeilisearch(ctx)
+	if err != nil {
+		return xerrors.Errorf("handle meilisearch: %w", err)
+	}
+
+	return nil
+}
+
+func (h *deleteHandler) handleBaseDB(ctx context.Context) error {
+	_, err := h.GetEntClient(ctx).Sticker.
 		Delete().
-		Where(sticker.IDIn(id...)).
+		Where(sticker.IDIn(h.stickerIDs...)).
 		Exec(ctx)
 	if err != nil {
 		return hserr.NewInternalError(err, "delete sticker")
+	}
+
+	return nil
+}
+
+func (h *deleteHandler) handleMeilisearch(ctx context.Context) error {
+	identifiers := make([]string, 0, len(h.stickerIDs))
+
+	for _, id := range h.stickerIDs {
+		identifiers = append(identifiers, strconv.Itoa(id))
+	}
+
+	taskInfo, err := h.meilisearchSticker.DeleteDocumentsWithContext(ctx, identifiers)
+	if err != nil {
+		return hserr.NewInternalError(err, "delete sticker from meilisearch")
+	}
+
+	task, err := h.meilisearchSticker.WaitForTaskWithContext(ctx, taskInfo.TaskUID, 0)
+	if err != nil {
+		return hserr.NewInternalError(err, "wait for task")
+	}
+
+	if task.Status != meilisearch.TaskStatusSucceeded {
+		return hserr.NewInternalError(err, "task failed")
 	}
 
 	return nil

@@ -38,15 +38,16 @@ import (
 )
 
 type Server struct {
-	dbClient         *ent.Client
-	redisClient      *redis.Client
-	vectorDB         vectordatabase.VectorDatabase
-	fullTextSearchDB meilisearch.ServiceManager
-	bucketHandler    objectstorage.BucketObjectHandler
-	openaiCli        *openai.Client
-	hs               *http.Server
-	dcCommandManager discordcommand.Manager
-	dcSess           *discordgo.Session
+	dbClient             *ent.Client
+	redisClient          *redis.Client
+	vectorDB             vectordatabase.VectorDatabase
+	meilisearchIndexName domain.MeilisearchIndexName
+	fullTextSearchDB     meilisearch.ServiceManager
+	bucketHandler        objectstorage.BucketObjectHandler
+	openaiCli            *openai.Client
+	hs                   *http.Server
+	dcCommandManager     discordcommand.Manager
+	dcSess               *discordgo.Session
 }
 
 func NewAndRun(ctx context.Context, cfg config.Config) error {
@@ -77,6 +78,8 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 		return xerrors.Errorf("init vector database client: %w", err)
 	}
 	s.initFullTextSearchDataBase(cfg.GetFullTextSearchDB())
+	meilisearchIndexNamePrefix := cfg.GetFullTextSearchDB().GetMeilisearch().GetIndexPrefix()
+	s.meilisearchIndexName = domain.NewMeilisearchIndexName(meilisearchIndexNamePrefix)
 
 	s.initOpenaiClient(cfg.GetOpenai())
 

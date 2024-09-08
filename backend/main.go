@@ -5,7 +5,6 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"time"
 
 	"backend/app/config"
 	"backend/app/pkg/log"
@@ -16,8 +15,6 @@ import (
 )
 
 func main() {
-	time.Local = time.UTC
-
 	ctx := context.Background()
 
 	flag.Parse()
