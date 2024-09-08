@@ -30,7 +30,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/qdrant/go-client v1.7.0
 	github.com/redis/go-redis/v9 v9.0.2
-	github.com/sashabaranov/go-openai v1.19.2
+	github.com/sashabaranov/go-openai v1.29.1
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/viper v1.17.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9

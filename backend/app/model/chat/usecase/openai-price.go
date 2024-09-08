@@ -16,37 +16,9 @@ type openaiPrice struct {
 
 //nolint:gomnd // This is not a magic number, it corresponds to a unique openai model price
 var openaiPriceMap = map[string]openaiPrice{
-	openai.GPT4Turbo0125: {
-		Input:  decimal.NewFromFloat(0.01 / 1000),
-		Output: decimal.NewFromFloat(0.03 / 1000),
-	},
-	openai.GPT4Turbo1106: {
-		Input:  decimal.NewFromFloat(0.01 / 1000),
-		Output: decimal.NewFromFloat(0.03 / 1000),
-	},
-	openai.GPT4VisionPreview: {
-		Input:  decimal.NewFromFloat(0.01 / 1000),
-		Output: decimal.NewFromFloat(0.03 / 1000),
-	},
-	openai.GPT4: {
-		Input:  decimal.NewFromFloat(0.03 / 1000),
-		Output: decimal.NewFromFloat(0.06 / 1000),
-	},
-	openai.GPT432K: {
-		Input:  decimal.NewFromFloat(0.06 / 1000),
-		Output: decimal.NewFromFloat(0.12 / 1000),
-	},
-	openai.GPT3Dot5Turbo1106: {
-		Input:  decimal.NewFromFloat(0.0010 / 1000),
-		Output: decimal.NewFromFloat(0.0020 / 1000),
-	},
-	GPT3Dot5Turbo0125: {
-		Input:  decimal.NewFromFloat(0.0005 / 1000),
-		Output: decimal.NewFromFloat(0.0015 / 1000),
-	},
-	openai.GPT3Dot5TurboInstruct: {
-		Input:  decimal.NewFromFloat(0.0015 / 1000),
-		Output: decimal.NewFromFloat(0.0020 / 1000),
+	openai.GPT4oMini20240718: {
+		Input:  decimal.New(150, -9),
+		Output: decimal.New(600, -9),
 	},
 }
 
