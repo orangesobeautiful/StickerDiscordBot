@@ -44,7 +44,7 @@ type ginCreateRAGReferencePoolTextsReq struct {
 }
 
 type createRAGReferencePoolTextsResp struct {
-	ID int `json:"id"`
+	ID uint64 `json:"id"`
 }
 
 type ginListRAGReferencePoolTextsReq struct {
@@ -70,7 +70,7 @@ func newListRAGReferencePoolTextsResp(
 }
 
 type ragReferencePoolText struct {
-	ID int `json:"id"`
+	ID uint64 `json:"id"`
 
 	Text string `json:"text"`
 

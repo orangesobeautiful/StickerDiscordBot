@@ -51,7 +51,7 @@ func (u *discordGuildUsecase) IsGuildOwnRAGReferencePool(
 }
 
 func (u *discordGuildUsecase) IsGuildOwnRAGReferenceText(
-	ctx context.Context, guildID string, ragReferenceTextID int,
+	ctx context.Context, guildID string, ragReferenceTextID uint64,
 ) (isOwn bool, err error) {
 	ragReferenceText, err := u.chatRepo.GetRAGReferenceTextWithGuildByID(ctx, ragReferenceTextID)
 	if err != nil {

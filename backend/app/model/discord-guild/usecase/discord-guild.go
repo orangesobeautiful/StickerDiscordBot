@@ -78,6 +78,31 @@ func (u *discordGuildUsecase) IsGuildOwnSticker(
 	return true, nil
 }
 
+func (u *discordGuildUsecase) IsGuildOwnStickerImage(
+	ctx context.Context, guildID string, stickerImageID int,
+) (isOwn bool, err error) {
+	stickerImage, err := u.stickerRepo.GetStickerImageWithGuildByID(ctx, stickerImageID)
+	if err != nil {
+		return false, xerrors.Errorf("get sticker image by id: %w", err)
+	}
+
+	sticker, err := stickerImage.Edges.StickerOrErr()
+	if err != nil {
+		return false, hserr.NewInternalError(err, "get sticker image sticker")
+	}
+
+	guild, err := sticker.Edges.GuildOrErr()
+	if err != nil {
+		return false, hserr.NewInternalError(err, "get sticker image guild")
+	}
+
+	if guild.ID != guildID {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (u *discordGuildUsecase) CreateGuildChatroom(
 	ctx context.Context, guildID string, name string,
 ) (chatroomID int, err error) {

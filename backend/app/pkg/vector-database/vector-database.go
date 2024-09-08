@@ -78,7 +78,7 @@ func IsSearchFilterConvertError(err error) bool {
 }
 
 type SearchResponseData struct {
-	ID    uint
+	ID    uint64
 	Score float32
 }
 

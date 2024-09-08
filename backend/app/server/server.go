@@ -11,13 +11,17 @@ import (
 	"time"
 
 	"backend/app/config"
+	"backend/app/domain"
 	domainresponse "backend/app/domain-response"
 	"backend/app/ent"
+	discordcommandRepo "backend/app/model/discord-command/repository"
 	discordmessage "backend/app/model/discord-message"
+	migraterepo "backend/app/model/migrate/repository"
 	discordcommand "backend/app/pkg/discord-command"
 	objectstorage "backend/app/pkg/object-storage"
 	vectordatabase "backend/app/pkg/vector-database"
 	"backend/app/pkg/vector-database/qdarnt"
+	"backend/app/server/migrate"
 
 	"entgo.io/ent/dialect"
 	"github.com/bwmarrin/discordgo"
@@ -27,20 +31,23 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/redis/go-redis/v9"
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/xerrors"
 )
 
 type Server struct {
-	dbClient         *ent.Client
-	redisClient      *redis.Client
-	vectorDB         vectordatabase.VectorDatabase
-	bucketHandler    objectstorage.BucketObjectHandler
-	openaiCli        *openai.Client
-	hs               *http.Server
-	dcCommandManager discordcommand.Manager
-	dcSess           *discordgo.Session
+	dbClient             *ent.Client
+	redisClient          *redis.Client
+	vectorDB             vectordatabase.VectorDatabase
+	meilisearchIndexName domain.MeilisearchIndexName
+	fullTextSearchDB     meilisearch.ServiceManager
+	bucketHandler        objectstorage.BucketObjectHandler
+	openaiCli            *openai.Client
+	hs                   *http.Server
+	dcCommandManager     discordcommand.Manager
+	dcSess               *discordgo.Session
 }
 
 func NewAndRun(ctx context.Context, cfg config.Config) error {
@@ -57,7 +64,6 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	eh := newErrHandler(uni)
 
 	e := newGinEngine(cfg.GetServer().GetCORS(), validate, eh)
-	s.initDCCommandManager(validate, eh)
 
 	err = s.initDBClient(cfg.GetDatabase())
 	if err != nil {
@@ -71,6 +77,9 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return xerrors.Errorf("init vector database client: %w", err)
 	}
+	s.initFullTextSearchDataBase(cfg.GetFullTextSearchDB())
+	meilisearchIndexNamePrefix := cfg.GetFullTextSearchDB().GetMeilisearch().GetIndexPrefix()
+	s.meilisearchIndexName = domain.NewMeilisearchIndexName(meilisearchIndexNamePrefix)
 
 	s.initOpenaiClient(cfg.GetOpenai())
 
@@ -85,6 +94,16 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	}
 	s.bucketHandler = bucketHandler
 	rd := domainresponse.New(bucketHandler)
+
+	dcCommandRepo := discordcommandRepo.New(s.dbClient)
+	migrateRepo := migraterepo.New(s.dbClient)
+
+	err = s.migrate(ctx, migrateRepo, cfg.GetFullTextSearchDB())
+	if err != nil {
+		return xerrors.Errorf("migrate: %w", err)
+	}
+
+	s.initDCCommandManager(validate, eh, dcCommandRepo)
 
 	dcMsgHandler, err := s.setModel(sessStore, e, s.dcCommandManager, rd)
 	if err != nil {
@@ -166,6 +185,13 @@ func (s *Server) initVectorDatabase(ctx context.Context, vectorDBCfg config.Vect
 	return nil
 }
 
+func (s *Server) initFullTextSearchDataBase(dbCfg config.FullTextSearchDatabase) {
+	addr := dbCfg.GetMeilisearch().GetAddr()
+	apiKey := dbCfg.GetMeilisearch().GetAPIKey()
+
+	s.fullTextSearchDB = meilisearch.New(addr, meilisearch.WithAPIKey(apiKey))
+}
+
 func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.Cookie) sessions.Store {
 	gob.Register(uuid.UUID{})
 
@@ -182,10 +208,29 @@ func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.
 	return cookieStore
 }
 
+func (s *Server) migrate(
+	ctx context.Context,
+	migrateRepo domain.MigrateRepository,
+	fullTextSearchConfig config.FullTextSearchDatabase,
+) error {
+	migrator := migrate.NewMigrator(
+		s.fullTextSearchDB,
+		migrateRepo,
+		fullTextSearchConfig,
+	)
+
+	err := migrator.Migrate(ctx)
+	if err != nil {
+		return xerrors.Errorf("migrate: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Server) run(
 	ctx context.Context, serverCfg config.Server, dcCfg config.Discord, httpHandler http.Handler, dcMsgHandler discordmessage.HandlerInterface,
 ) (err error) {
-	err = s.runDiscordBot(dcCfg, dcMsgHandler)
+	err = s.runDiscordBot(ctx, dcCfg, dcMsgHandler)
 	if err != nil {
 		return xerrors.Errorf("run discord bot: %w", err)
 	}
@@ -206,7 +251,11 @@ func (s *Server) run(
 	return nil
 }
 
-func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage.HandlerInterface) (err error) {
+func (s *Server) runDiscordBot(
+	ctx context.Context,
+	dcCfg config.Discord,
+	dcMsgHandler discordmessage.HandlerInterface,
+) (err error) {
 	discordSess, err := discordgo.New("Bot " + dcCfg.GetToken())
 	if err != nil {
 		return xerrors.Errorf("new discord session: %w", err)
@@ -222,10 +271,14 @@ func (s *Server) runDiscordBot(dcCfg config.Discord, dcMsgHandler discordmessage
 	}
 
 	if !dcCfg.GetDisableRegisterCommand() {
-		err = s.dcCommandManager.RegisterAllCommand(discordSess, "")
+		slog.Info("migrate all command")
+
+		err = s.dcCommandManager.MigrateAllCommand(ctx, discordSess, "")
 		if err != nil {
-			return xerrors.Errorf("register all command: %w", err)
+			return xerrors.Errorf("migrate all command: %w", err)
 		}
+
+		slog.Info("migrate all command done")
 	}
 
 	discordSess.AddHandler(s.dcCommandManager.GetHandler())
@@ -253,10 +306,6 @@ func (s *Server) runHTTPServer(serverCfg config.Server, httpHandler http.Handler
 }
 
 func (s *Server) Close() (err error) {
-	err = s.dcCommandManager.DeleteAllCommand(s.dcSess, "")
-	if err != nil {
-		return xerrors.Errorf("delete all command: %w", err)
-	}
 	err = s.dcSess.Close()
 	if err != nil {
 		return xerrors.Errorf("discord session close: %w", err)

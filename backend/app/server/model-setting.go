@@ -47,14 +47,22 @@ func (s *Server) setModel(
 	imageUsecase := imageusecase.New(imageRepo)
 	_ = imageUsecase
 
-	stickerRepo := stickerrepo.New(s.dbClient)
+	stickerRepo := stickerrepo.New(s.dbClient, s.fullTextSearchDB, s.meilisearchIndexName)
 	stickerUsecase := stickerusecase.New(stickerRepo, imageRepo)
 
 	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
 
 	discordGuildRepo := discordguildrepository.New(s.dbClient)
 	discordGuildUsecase := discordguildusecase.New(discordGuildRepo, stickerRepo, chatRepo)
-	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase, stickerUsecase)
+	discordguilddelivery.Initialze(
+		apiGroup,
+		dcCmdRegister,
+		auth,
+		rd,
+		discordGuildUsecase,
+		stickerUsecase,
+		imageUsecase,
+	)
 
 	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
 	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase, discordGuildUsecase)

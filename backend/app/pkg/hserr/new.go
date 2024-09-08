@@ -9,7 +9,7 @@ import (
 type newOption struct {
 	details         []string
 	isInternal      bool
-	extraCallerSkip uint
+	extraCallerSkip uint32
 	err             error
 }
 
@@ -27,7 +27,7 @@ func WithIsInternal() NewOption {
 	}
 }
 
-func WithExtraCallerSkip(extraCallerSkip uint) NewOption {
+func WithExtraCallerSkip(extraCallerSkip uint32) NewOption {
 	return func(o *newOption) {
 		o.extraCallerSkip = extraCallerSkip
 	}

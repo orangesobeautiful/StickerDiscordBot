@@ -37,6 +37,7 @@ type DiscordGuildUsecase interface {
 	RegisterGuild(ctx context.Context, guildID string) (err error)
 
 	IsGuildOwnSticker(ctx context.Context, guildID string, stickerID int) (isOwn bool, err error)
+	IsGuildOwnStickerImage(ctx context.Context, guildID string, stickerImageID int) (isOwn bool, err error)
 
 	CreateGuildChatroom(ctx context.Context, guildID string, name string) (chatroomID int, err error)
 	ListGuildChatrooms(ctx context.Context, guildID string, limit, offset int) (result ListChatroomsResult, err error)
@@ -49,7 +50,7 @@ type DiscordGuildUsecase interface {
 	CreateRAGReferencePool(ctx context.Context, guildID, name, description string) (id int, err error)
 	ListRAGReferencePools(ctx context.Context, guildID string, limit, offset int) (result ListRAGReferencePoolsResult, err error)
 	IsGuildOwnRAGReferencePool(ctx context.Context, guildID string, ragReferencePoolID int) (isOwn bool, err error)
-	IsGuildOwnRAGReferenceText(ctx context.Context, guildID string, ragReferenceTextID int) (isOwn bool, err error)
+	IsGuildOwnRAGReferenceText(ctx context.Context, guildID string, ragReferenceTextID uint64) (isOwn bool, err error)
 
 	AddChatroomRAGReferencePool(ctx context.Context, chatroomID int, ragReferencePoolID int) (err error)
 	GetAllChatroomRAGReferencePools(ctx context.Context, chatroomID int) (result []*ent.RAGReferencePool, err error)
