@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:number_paginator/number_paginator.dart';
+import 'package:our_dc_bot/api/exception.dart';
 
 import 'package:our_dc_bot/global/global.dart';
 import 'package:our_dc_bot/api/api.dart';
@@ -301,23 +302,17 @@ class StickerDialogManageBlockState
       BuildContext context, String name) async {
     final userInfo = ref.read(authStateNotifierProvider).user;
 
-    final response = await ref
-        .read<UIAPIHandler>(apiHandlerProvider)
-        .call(context, (api) => api.listSticker(userInfo.guildId, 1, 10));
+    GetStickerByNameResponse response;
 
-    if (response.stickers.isEmpty) {
-      return [];
+    try {
+      response = await ref
+          .read<UIAPIHandler>(apiHandlerProvider)
+          .call(context, (api) => api.getStickerByName(userInfo.guildId, name));
+    } on NotFoundException {
+      return <StickerImage>[];
     }
 
-    final sameNameStickers = response.stickers
-        .where((sticker) => sticker.stickerName == name)
-        .toList();
-
-    if (sameNameStickers.isEmpty) {
-      return [];
-    }
-
-    return sameNameStickers[0].images.toList();
+    return response.sticker.images.toList();
   }
 
   Future<void> addImage(String imageURL) async {

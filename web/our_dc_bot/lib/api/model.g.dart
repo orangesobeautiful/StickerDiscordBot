@@ -13,6 +13,8 @@ Serializer<VerifyLoginCodeRequest> _$verifyLoginCodeRequestSerializer =
     new _$VerifyLoginCodeRequestSerializer();
 Serializer<VerifyLoginCodeResponse> _$verifyLoginCodeResponseSerializer =
     new _$VerifyLoginCodeResponseSerializer();
+Serializer<GetStickerByNameResponse> _$getStickerByNameResponseSerializer =
+    new _$GetStickerByNameResponseSerializer();
 Serializer<ListStickerResponse> _$listStickerResponseSerializer =
     new _$ListStickerResponseSerializer();
 Serializer<Sticker> _$stickerSerializer = new _$StickerSerializer();
@@ -218,6 +220,52 @@ class _$VerifyLoginCodeResponseSerializer
         case 'token':
           result.token = serializers.deserialize(value,
               specifiedType: const FullType(String))! as String;
+          break;
+      }
+    }
+
+    return result.build();
+  }
+}
+
+class _$GetStickerByNameResponseSerializer
+    implements StructuredSerializer<GetStickerByNameResponse> {
+  @override
+  final Iterable<Type> types = const [
+    GetStickerByNameResponse,
+    _$GetStickerByNameResponse
+  ];
+  @override
+  final String wireName = 'GetStickerByNameResponse';
+
+  @override
+  Iterable<Object?> serialize(
+      Serializers serializers, GetStickerByNameResponse object,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = <Object?>[
+      'sticker',
+      serializers.serialize(object.sticker,
+          specifiedType: const FullType(Sticker)),
+    ];
+
+    return result;
+  }
+
+  @override
+  GetStickerByNameResponse deserialize(
+      Serializers serializers, Iterable<Object?> serialized,
+      {FullType specifiedType = FullType.unspecified}) {
+    final result = new GetStickerByNameResponseBuilder();
+
+    final iterator = serialized.iterator;
+    while (iterator.moveNext()) {
+      final key = iterator.current! as String;
+      iterator.moveNext();
+      final Object? value = iterator.current;
+      switch (key) {
+        case 'sticker':
+          result.sticker.replace(serializers.deserialize(value,
+              specifiedType: const FullType(Sticker))! as Sticker);
           break;
       }
     }
@@ -846,6 +894,105 @@ class VerifyLoginCodeResponseBuilder
                 isVerified, r'VerifyLoginCodeResponse', 'isVerified'),
             token: BuiltValueNullFieldError.checkNotNull(
                 token, r'VerifyLoginCodeResponse', 'token'));
+    replace(_$result);
+    return _$result;
+  }
+}
+
+class _$GetStickerByNameResponse extends GetStickerByNameResponse {
+  @override
+  final Sticker sticker;
+
+  factory _$GetStickerByNameResponse(
+          [void Function(GetStickerByNameResponseBuilder)? updates]) =>
+      (new GetStickerByNameResponseBuilder()..update(updates))._build();
+
+  _$GetStickerByNameResponse._({required this.sticker}) : super._() {
+    BuiltValueNullFieldError.checkNotNull(
+        sticker, r'GetStickerByNameResponse', 'sticker');
+  }
+
+  @override
+  GetStickerByNameResponse rebuild(
+          void Function(GetStickerByNameResponseBuilder) updates) =>
+      (toBuilder()..update(updates)).build();
+
+  @override
+  GetStickerByNameResponseBuilder toBuilder() =>
+      new GetStickerByNameResponseBuilder()..replace(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(other, this)) return true;
+    return other is GetStickerByNameResponse && sticker == other.sticker;
+  }
+
+  @override
+  int get hashCode {
+    var _$hash = 0;
+    _$hash = $jc(_$hash, sticker.hashCode);
+    _$hash = $jf(_$hash);
+    return _$hash;
+  }
+
+  @override
+  String toString() {
+    return (newBuiltValueToStringHelper(r'GetStickerByNameResponse')
+          ..add('sticker', sticker))
+        .toString();
+  }
+}
+
+class GetStickerByNameResponseBuilder
+    implements
+        Builder<GetStickerByNameResponse, GetStickerByNameResponseBuilder> {
+  _$GetStickerByNameResponse? _$v;
+
+  StickerBuilder? _sticker;
+  StickerBuilder get sticker => _$this._sticker ??= new StickerBuilder();
+  set sticker(StickerBuilder? sticker) => _$this._sticker = sticker;
+
+  GetStickerByNameResponseBuilder();
+
+  GetStickerByNameResponseBuilder get _$this {
+    final $v = _$v;
+    if ($v != null) {
+      _sticker = $v.sticker.toBuilder();
+      _$v = null;
+    }
+    return this;
+  }
+
+  @override
+  void replace(GetStickerByNameResponse other) {
+    ArgumentError.checkNotNull(other, 'other');
+    _$v = other as _$GetStickerByNameResponse;
+  }
+
+  @override
+  void update(void Function(GetStickerByNameResponseBuilder)? updates) {
+    if (updates != null) updates(this);
+  }
+
+  @override
+  GetStickerByNameResponse build() => _build();
+
+  _$GetStickerByNameResponse _build() {
+    _$GetStickerByNameResponse _$result;
+    try {
+      _$result =
+          _$v ?? new _$GetStickerByNameResponse._(sticker: sticker.build());
+    } catch (_) {
+      late String _$failedField;
+      try {
+        _$failedField = 'sticker';
+        sticker.build();
+      } catch (e) {
+        throw new BuiltValueNestedFieldError(
+            r'GetStickerByNameResponse', _$failedField, e.toString());
+      }
+      rethrow;
+    }
     replace(_$result);
     return _$result;
   }

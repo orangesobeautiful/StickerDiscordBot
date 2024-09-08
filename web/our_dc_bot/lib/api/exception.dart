@@ -11,6 +11,8 @@ part 'exception.g.dart';
 
 class UnauthorizedException implements Exception {}
 
+class NotFoundException implements Exception {}
+
 class ErrorResponseException implements Exception {
   final int statusCode;
   final ErrorResponse? errorResponse;

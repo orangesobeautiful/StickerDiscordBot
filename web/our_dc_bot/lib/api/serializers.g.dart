@@ -9,6 +9,7 @@ part of 'serializers.dart';
 Serializers _$serializers = (new Serializers().toBuilder()
       ..add(AddStickerRequest.serializer)
       ..add(ErrorResponse.serializer)
+      ..add(GetStickerByNameResponse.serializer)
       ..add(ListStickerResponse.serializer)
       ..add(LoginCode.serializer)
       ..add(Sticker.serializer)

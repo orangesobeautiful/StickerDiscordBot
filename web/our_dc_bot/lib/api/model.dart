@@ -127,6 +127,34 @@ abstract class VerifyLoginCodeResponse
   }
 }
 
+abstract class GetStickerByNameResponse
+    implements
+        Built<GetStickerByNameResponse, GetStickerByNameResponseBuilder>,
+        ToJsoner {
+  static Serializer<GetStickerByNameResponse> get serializer =>
+      _$getStickerByNameResponseSerializer;
+
+  @BuiltValueField(wireName: 'sticker')
+  Sticker get sticker;
+
+  GetStickerByNameResponse._();
+
+  factory GetStickerByNameResponse(
+          [void Function(GetStickerByNameResponseBuilder) updates]) =
+      _$GetStickerByNameResponse;
+
+  @override
+  String toJson() {
+    return json.encode(
+        serializers.serializeWith(GetStickerByNameResponse.serializer, this));
+  }
+
+  static GetStickerByNameResponse? fromJson(String jsonString) {
+    return serializers.deserializeWith(
+        GetStickerByNameResponse.serializer, json.decode(jsonString));
+  }
+}
+
 abstract class ListStickerResponse
     implements
         Built<ListStickerResponse, ListStickerResponseBuilder>,

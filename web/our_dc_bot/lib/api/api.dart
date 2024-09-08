@@ -195,6 +195,25 @@ class API {
     );
   }
 
+  Future<GetStickerByNameResponse> getStickerByName(
+      String guildID, String name) async {
+    try {
+      final response = await _normalJsonAPI(
+        'GET',
+        '/api/v1/guilds/$guildID/sticker_by_name?name=$name',
+        respSerializer: GetStickerByNameResponse.serializer,
+      );
+
+      return response;
+    } on ErrorResponseException catch (e) {
+      if (e.statusCode != 404) {
+        rethrow;
+      }
+
+      throw NotFoundException();
+    }
+  }
+
   Future<ListStickerResponse> listSticker(
       String guildID, int page, int limit) async {
     return _normalJsonAPI(

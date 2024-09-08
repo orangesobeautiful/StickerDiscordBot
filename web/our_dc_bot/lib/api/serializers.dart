@@ -13,6 +13,7 @@ part 'serializers.g.dart';
   UserInformation,
   VerifyLoginCodeRequest,
   VerifyLoginCodeResponse,
+  GetStickerByNameResponse,
   ListStickerResponse,
   Sticker,
   StickerImage,
