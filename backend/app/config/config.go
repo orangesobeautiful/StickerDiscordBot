@@ -15,6 +15,7 @@ type Config interface {
 	GetDatabase() Database
 	GetRedis() Redis
 	GetVectorDatabase() VectorDatabase
+	GetFullTextSearchDB() FullTextSearchDatabase
 	GetOpenai() Openai
 	GetObjectStorage() ObjectStorage
 	GetDiscord() Discord
@@ -32,6 +33,8 @@ type config struct {
 	Redis *redis
 
 	VectorDatabase *vectorDatabase
+
+	FullTextSearchDatabase *fullTextSearchDatabase
 
 	Openai *openai
 
@@ -89,6 +92,10 @@ func (c *config) GetRedis() Redis {
 
 func (c *config) GetVectorDatabase() VectorDatabase {
 	return c.VectorDatabase
+}
+
+func (c *config) GetFullTextSearchDB() FullTextSearchDatabase {
+	return c.FullTextSearchDatabase
 }
 
 func (c *config) GetOpenai() Openai {
