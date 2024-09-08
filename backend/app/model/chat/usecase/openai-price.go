@@ -16,9 +16,9 @@ type openaiPrice struct {
 
 //nolint:gomnd // This is not a magic number, it corresponds to a unique openai model price
 var openaiPriceMap = map[string]openaiPrice{
-	GPT3Dot5Turbo0125: {
-		Input:  decimal.NewFromFloat(0.0005 / 1000),
-		Output: decimal.NewFromFloat(0.0015 / 1000),
+	openai.GPT4oMini20240718: {
+		Input:  decimal.New(150, -9),
+		Output: decimal.New(600, -9),
 	},
 }
 

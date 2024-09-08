@@ -12,11 +12,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// GPT3Dot5Turbo0125 OpenAI GPT-3.5-turbo-0125 model
-//
-//	openai package 尚未更新新模型，這裡用自定義處理
-const GPT3Dot5Turbo0125 = "gpt-3.5-turbo-0125"
-
 var _ domain.ChatUsecase = (*chatUsecase)(nil)
 
 type chatUsecase struct {
@@ -82,7 +77,7 @@ func (u *chatUsecase) Chat(
 	}
 	chatMessages := createChatMessagesByChatHistories(message, refChatHistoriesResult, ragTexts)
 
-	const chatModel = GPT3Dot5Turbo0125
+	chatModel := openai.GPT4oMini20240718
 	chatResuest := openai.ChatCompletionRequest{
 		Model:    chatModel,
 		Messages: chatMessages,
