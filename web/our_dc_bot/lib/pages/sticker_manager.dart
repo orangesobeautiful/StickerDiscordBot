@@ -21,6 +21,7 @@ class StickerManagerPageState extends ConsumerState<StickerManagerPage>
     with TickerProviderStateMixin {
   final int pageSize = 5;
 
+  String _searchText = '';
   int _currentPage = 1;
   int _numPages = 1;
 
@@ -34,6 +35,13 @@ class StickerManagerPageState extends ConsumerState<StickerManagerPage>
     super.dispose();
   }
 
+  void _onSearchTextChanged(String text) {
+    setState(() {
+      _searchText = text;
+      _currentPage = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userInfo = ref.read(authStateNotifierProvider).user;
@@ -41,16 +49,22 @@ class StickerManagerPageState extends ConsumerState<StickerManagerPage>
 
     return Column(
       children: <Widget>[
-        const Padding(
-          padding: EdgeInsets.only(top: 32.0, bottom: 48.0),
-          child: StickerManagerPageUpper(),
+        Padding(
+          padding: const EdgeInsets.only(top: 32.0, bottom: 48.0),
+          child: StickerManagerPageUpper(
+            onSearchTextChanged: _onSearchTextChanged,
+          ),
         ),
         Expanded(
           child: FutureBuilder(
             future: api.call(
               context,
-              (api) =>
-                  api.listSticker(userInfo.guildId, _currentPage, pageSize),
+              (api) => api.listSticker(
+                userInfo.guildId,
+                _currentPage,
+                pageSize,
+                search: _searchText,
+              ),
             ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -104,7 +118,12 @@ class StickerManagerPageState extends ConsumerState<StickerManagerPage>
 }
 
 class StickerManagerPageUpper extends ConsumerStatefulWidget {
-  const StickerManagerPageUpper({super.key});
+  const StickerManagerPageUpper({
+    super.key,
+    required this.onSearchTextChanged,
+  });
+
+  final Function(String) onSearchTextChanged;
 
   @override
   StickerManagerPageUpperState createState() => StickerManagerPageUpperState();
@@ -126,7 +145,7 @@ class StickerManagerPageUpperState
             EdgeInsets.symmetric(horizontal: 16.0),
           ),
           onSubmitted: (value) {
-            print('Search: $value');
+            widget.onSearchTextChanged(value);
           },
           leading: const Icon(Icons.search),
         ),

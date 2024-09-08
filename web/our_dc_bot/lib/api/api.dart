@@ -215,10 +215,20 @@ class API {
   }
 
   Future<ListStickerResponse> listSticker(
-      String guildID, int page, int limit) async {
+    String guildID,
+    int page,
+    int limit, {
+    String search = '',
+  }) async {
+    String apiURL = '/api/v1/guilds/$guildID/stickers?page=$page&limit=$limit';
+
+    if (search.isNotEmpty) {
+      apiURL += '&search=$search';
+    }
+
     return _normalJsonAPI(
       'GET',
-      '/api/v1/guilds/$guildID/stickers?page=$page&limit=$limit',
+      apiURL,
       respSerializer: ListStickerResponse.serializer,
     );
   }
