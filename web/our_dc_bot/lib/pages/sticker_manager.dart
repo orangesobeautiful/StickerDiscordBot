@@ -81,7 +81,10 @@ class StickerManagerPageState extends ConsumerState<StickerManagerPage>
 
               final listStickerResp = snapshot.data as ListStickerResponse;
 
-              _numPages = (listStickerResp.totalCount / pageSize).ceil();
+              _numPages = 1;
+              if (listStickerResp.totalCount != 0) {
+                _numPages = (listStickerResp.totalCount / pageSize).ceil();
+              }
 
               return Column(
                 children: <Widget>[
