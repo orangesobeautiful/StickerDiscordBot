@@ -11,14 +11,17 @@ import (
 	"time"
 
 	"backend/app/config"
+	"backend/app/domain"
 	domainresponse "backend/app/domain-response"
 	"backend/app/ent"
 	discordcommandRepo "backend/app/model/discord-command/repository"
 	discordmessage "backend/app/model/discord-message"
+	migraterepo "backend/app/model/migrate/repository"
 	discordcommand "backend/app/pkg/discord-command"
 	objectstorage "backend/app/pkg/object-storage"
 	vectordatabase "backend/app/pkg/vector-database"
 	"backend/app/pkg/vector-database/qdarnt"
+	"backend/app/server/migrate"
 
 	"entgo.io/ent/dialect"
 	"github.com/bwmarrin/discordgo"
@@ -28,20 +31,23 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/redis/go-redis/v9"
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/xerrors"
 )
 
 type Server struct {
-	dbClient         *ent.Client
-	redisClient      *redis.Client
-	vectorDB         vectordatabase.VectorDatabase
-	bucketHandler    objectstorage.BucketObjectHandler
-	openaiCli        *openai.Client
-	hs               *http.Server
-	dcCommandManager discordcommand.Manager
-	dcSess           *discordgo.Session
+	dbClient             *ent.Client
+	redisClient          *redis.Client
+	vectorDB             vectordatabase.VectorDatabase
+	meilisearchIndexName domain.MeilisearchIndexName
+	fullTextSearchDB     meilisearch.ServiceManager
+	bucketHandler        objectstorage.BucketObjectHandler
+	openaiCli            *openai.Client
+	hs                   *http.Server
+	dcCommandManager     discordcommand.Manager
+	dcSess               *discordgo.Session
 }
 
 func NewAndRun(ctx context.Context, cfg config.Config) error {
@@ -71,6 +77,9 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return xerrors.Errorf("init vector database client: %w", err)
 	}
+	s.initFullTextSearchDataBase(cfg.GetFullTextSearchDB())
+	meilisearchIndexNamePrefix := cfg.GetFullTextSearchDB().GetMeilisearch().GetIndexPrefix()
+	s.meilisearchIndexName = domain.NewMeilisearchIndexName(meilisearchIndexNamePrefix)
 
 	s.initOpenaiClient(cfg.GetOpenai())
 
@@ -87,6 +96,12 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	rd := domainresponse.New(bucketHandler)
 
 	dcCommandRepo := discordcommandRepo.New(s.dbClient)
+	migrateRepo := migraterepo.New(s.dbClient)
+
+	err = s.migrate(ctx, migrateRepo, cfg.GetFullTextSearchDB())
+	if err != nil {
+		return xerrors.Errorf("migrate: %w", err)
+	}
 
 	s.initDCCommandManager(validate, eh, dcCommandRepo)
 
@@ -170,6 +185,13 @@ func (s *Server) initVectorDatabase(ctx context.Context, vectorDBCfg config.Vect
 	return nil
 }
 
+func (s *Server) initFullTextSearchDataBase(dbCfg config.FullTextSearchDatabase) {
+	addr := dbCfg.GetMeilisearch().GetAddr()
+	apiKey := dbCfg.GetMeilisearch().GetAPIKey()
+
+	s.fullTextSearchDB = meilisearch.New(addr, meilisearch.WithAPIKey(apiKey))
+}
+
 func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.Cookie) sessions.Store {
 	gob.Register(uuid.UUID{})
 
@@ -184,6 +206,25 @@ func (s *Server) newSessStore(sessionKeyCfg config.SessionKey, cookieCfg config.
 	}
 
 	return cookieStore
+}
+
+func (s *Server) migrate(
+	ctx context.Context,
+	migrateRepo domain.MigrateRepository,
+	fullTextSearchConfig config.FullTextSearchDatabase,
+) error {
+	migrator := migrate.NewMigrator(
+		s.fullTextSearchDB,
+		migrateRepo,
+		fullTextSearchConfig,
+	)
+
+	err := migrator.Migrate(ctx)
+	if err != nil {
+		return xerrors.Errorf("migrate: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) run(

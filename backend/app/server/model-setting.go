@@ -47,7 +47,7 @@ func (s *Server) setModel(
 	imageUsecase := imageusecase.New(imageRepo)
 	_ = imageUsecase
 
-	stickerRepo := stickerrepo.New(s.dbClient)
+	stickerRepo := stickerrepo.New(s.dbClient, s.fullTextSearchDB, s.meilisearchIndexName)
 	stickerUsecase := stickerusecase.New(stickerRepo, imageRepo)
 
 	chatRepo := chatrepository.New(s.dbClient, s.vectorDB)
