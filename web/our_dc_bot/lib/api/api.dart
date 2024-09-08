@@ -239,6 +239,13 @@ class API {
       '/api/v1/stickers/$stickerID',
     );
   }
+
+  Future<void> deleteStickerImage(int stickerImageID) {
+    return _normalJsonAPI(
+      'DELETE',
+      '/api/v1/sticker-images/$stickerImageID',
+    );
+  }
 }
 
 Future<T> _isolateDeserializeJson<T>(

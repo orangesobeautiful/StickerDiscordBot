@@ -430,9 +430,13 @@ class StickerDialogManageBlockState
 
                 return Container(
                   padding: const EdgeInsets.all(8),
-                  child: SquareNetworkImage(
+                  child: DeletableStickerImage(
+                    id: images[index - 1].id,
                     url: images[index - 1].url,
                     size: imageWidth,
+                    onDeleted: () {
+                      setState(() {});
+                    },
                   ),
                 );
               },
@@ -604,6 +608,77 @@ class NetworkImageGrid extends StatelessWidget {
               ),
             ],
           ),
+      ],
+    );
+  }
+}
+
+class DeletableStickerImage extends ConsumerWidget {
+  const DeletableStickerImage({
+    super.key,
+    required this.id,
+    required this.url,
+    required this.size,
+    required this.onDeleted,
+  });
+
+  final int id;
+
+  final String url;
+
+  final double size;
+
+  final void Function() onDeleted;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Stack(
+      alignment: Alignment.center,
+      children: <Widget>[
+        SquareNetworkImage(url: url, size: size),
+        Align(
+          alignment: Alignment.topRight,
+          child: IconButton(
+            icon: const Icon(Icons.delete),
+            color: Colors.red,
+            onPressed: () {
+              showDialog<bool>(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('確定要刪除嗎？'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(false);
+                        },
+                        child: const Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final api =
+                              ref.read<UIAPIHandler>(apiHandlerProvider);
+
+                          await api.call(context, (api) {
+                            return api.deleteStickerImage(id);
+                          });
+
+                          if (!context.mounted) {
+                            return;
+                          }
+
+                          onDeleted();
+                          Navigator.of(context).pop(true);
+                        },
+                        child: const Text('刪除'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ),
       ],
     );
   }
