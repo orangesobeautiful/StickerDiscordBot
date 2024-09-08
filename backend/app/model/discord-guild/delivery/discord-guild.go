@@ -21,6 +21,8 @@ type discordGuildController struct {
 	dcGuildUsecase domain.DiscordGuildUsecase
 
 	stickerUsecase domain.StickerUsecase
+
+	imageUsecase domain.ImageUsecase
 }
 
 func Initialze(
@@ -28,6 +30,7 @@ func Initialze(
 	auth ginauth.AuthInterface,
 	rd *domainresponse.DomainResponse,
 	dcGuildUsecase domain.DiscordGuildUsecase, stickerUsecase domain.StickerUsecase,
+	imageUsecase domain.ImageUsecase,
 ) {
 	ctrl := &discordGuildController{
 		auth: auth,
@@ -37,6 +40,8 @@ func Initialze(
 		dcGuildUsecase: dcGuildUsecase,
 
 		stickerUsecase: stickerUsecase,
+
+		imageUsecase: imageUsecase,
 	}
 
 	ctrl.registerGinRouter(apiGroup)

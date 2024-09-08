@@ -54,7 +54,15 @@ func (s *Server) setModel(
 
 	discordGuildRepo := discordguildrepository.New(s.dbClient)
 	discordGuildUsecase := discordguildusecase.New(discordGuildRepo, stickerRepo, chatRepo)
-	discordguilddelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, discordGuildUsecase, stickerUsecase)
+	discordguilddelivery.Initialze(
+		apiGroup,
+		dcCmdRegister,
+		auth,
+		rd,
+		discordGuildUsecase,
+		stickerUsecase,
+		imageUsecase,
+	)
 
 	chatUsecase := chatusecase.New(chatRepo, discordGuildUsecase, s.openaiCli)
 	chatdelivery.Initialze(apiGroup, dcCmdRegister, auth, rd, chatUsecase, discordGuildUsecase)

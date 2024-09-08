@@ -90,6 +90,14 @@ func (l *listStickerResp) MarshalDiscordWebhookParams() *discordgo.WebhookParams
 	return result
 }
 
+type ginGetStickerByNameReq struct {
+	Name string `form:"name" binding:"required"`
+}
+
+type ginGetStickerByNameResp struct {
+	Sticker *domainresponse.Sticker `json:"sticker"`
+}
+
 type ginDeleteStickerReq struct {
 	StickerID int `uri:"sticker_id" binding:"required,gte=0"`
 }
@@ -104,6 +112,16 @@ type discordDeleteStickerByNameReq struct {
 	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
 
 	Name string `dccmd:"name=name" binding:"required"`
+}
+
+type ginDeleteStickerImageReq struct {
+	ImageID int `uri:"sticker_image_id" binding:"required,gte=0"`
+}
+
+type discordDeleteStickerImageReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	ID int `dccmd:"name=id" binding:"required,gte=0"`
 }
 
 type ginCreateGuildChatroomReq struct {

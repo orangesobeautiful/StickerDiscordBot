@@ -37,6 +37,7 @@ type DiscordGuildUsecase interface {
 	RegisterGuild(ctx context.Context, guildID string) (err error)
 
 	IsGuildOwnSticker(ctx context.Context, guildID string, stickerID int) (isOwn bool, err error)
+	IsGuildOwnStickerImage(ctx context.Context, guildID string, stickerImageID int) (isOwn bool, err error)
 
 	CreateGuildChatroom(ctx context.Context, guildID string, name string) (chatroomID int, err error)
 	ListGuildChatrooms(ctx context.Context, guildID string, limit, offset int) (result ListChatroomsResult, err error)

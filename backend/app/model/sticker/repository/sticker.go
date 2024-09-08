@@ -7,6 +7,7 @@ import (
 	"backend/app/domain"
 	"backend/app/ent"
 	"backend/app/ent/discordguild"
+	"backend/app/ent/image"
 	"backend/app/ent/sticker"
 	"backend/app/pkg/hserr"
 
@@ -340,4 +341,27 @@ func (h *deleteHandler) handleMeilisearch(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *stickerRepository) GetStickerImageWithGuildByID(ctx context.Context, imageID int) (*ent.Image, error) {
+	i, err := r.GetEntClient(ctx).Image.
+		Query().
+		Where(
+			image.IDEQ(imageID),
+		).
+		WithSticker(
+			func(sq *ent.StickerQuery) {
+				sq.WithGuild()
+			},
+		).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, domain.NewHsNotFoundError("sticker image")
+		}
+
+		return nil, hserr.NewInternalError(err, "query sticker image")
+	}
+
+	return i, nil
 }
