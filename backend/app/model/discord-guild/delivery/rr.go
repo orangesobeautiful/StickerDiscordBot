@@ -114,6 +114,16 @@ type discordDeleteStickerByNameReq struct {
 	Name string `dccmd:"name=name" binding:"required"`
 }
 
+type ginDeleteStickerImageReq struct {
+	ImageID int `uri:"sticker_image_id" binding:"required,gte=0"`
+}
+
+type discordDeleteStickerImageReq struct {
+	discordcommand.BaseAuthInteractionCreate `dccmd:"ignore"`
+
+	ID int `dccmd:"name=id" binding:"required,gte=0"`
+}
+
 type ginCreateGuildChatroomReq struct {
 	Name string `json:"name" binding:"required"`
 }

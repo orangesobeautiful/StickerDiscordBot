@@ -16,6 +16,8 @@ type StickerRepository interface {
 	List(ctx context.Context, guildID string, offset, limit int, opts ...StickerListOptionFunc) (stickers ListStickerResult, err error)
 	AddImage(ctx context.Context, stickerID int, imageIDs ...int) (err error)
 	Delete(ctx context.Context, id ...int) (err error)
+
+	GetStickerImageWithGuildByID(ctx context.Context, imageID int) (image *ent.Image, err error)
 }
 
 type StickerUsecase interface {

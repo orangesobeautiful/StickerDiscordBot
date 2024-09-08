@@ -119,3 +119,23 @@ func (c *discordGuildController) deleteStickerByName(
 
 	return nil
 }
+
+func (c *discordGuildController) ginDeleteStickerImage(ctx *gin.Context, req ginDeleteStickerImageReq) (*ginext.EmptyResp, error) {
+	err := c.deleteStickerImage(ctx, req.ImageID)
+	if err != nil {
+		return nil, xerrors.Errorf("delete sticker image: %w", err)
+	}
+
+	return nil, nil
+}
+
+func (c *discordGuildController) deleteStickerImage(
+	ctx context.Context, imageID int,
+) error {
+	err := c.imageUsecase.Delete(ctx, imageID)
+	if err != nil {
+		return xerrors.Errorf("delete sticker image: %w", err)
+	}
+
+	return nil
+}
