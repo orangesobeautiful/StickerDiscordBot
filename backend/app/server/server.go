@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -23,7 +24,7 @@ import (
 	"backend/app/pkg/vector-database/qdarnt"
 	"backend/app/server/migrate"
 
-	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-playground/locales/en_US"
 	ut "github.com/go-playground/universal-translator"
@@ -32,6 +33,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/meilisearch/meilisearch-go"
+	"github.com/pressly/goose/v3"
 	"github.com/redis/go-redis/v9"
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/xerrors"
@@ -65,7 +67,7 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 
 	e := newGinEngine(cfg.GetServer().GetCORS(), validate, eh)
 
-	err = s.initDBClient(cfg.GetDatabase())
+	err = s.initDBClient(ctx, cfg.GetDatabase())
 	if err != nil {
 		return xerrors.Errorf("new db client: %w", err)
 	}
@@ -125,19 +127,46 @@ func newValidateTranslator() *ut.UniversalTranslator {
 	return uni
 }
 
-func (s *Server) initDBClient(dbCfg config.Database) error {
-	dbClient, err := ent.Open(dialect.Postgres, dbCfg.GetDSN())
+const dbDriverName = "postgres"
+
+func (s *Server) initDBClient(ctx context.Context, dbCfg config.Database) error {
+	entSQLDriver, err := entsql.Open(dbDriverName, dbCfg.GetDSN())
 	if err != nil {
-		return xerrors.Errorf("open db connection: %w", err)
+		return xerrors.Errorf("open sql connection: %w", err)
+	}
+
+	sqlDB := entSQLDriver.DB()
+
+	dbClient := ent.NewClient(ent.Driver(entSQLDriver))
+
+	if !dbCfg.GetDisableVersionedMigrate() {
+		err = s.versionedMigrate(ctx, sqlDB)
+		if err != nil {
+			return xerrors.Errorf("versioned migrate: %w", err)
+		}
 	}
 
 	if dbCfg.GetAutoMigrate() {
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
+		if err := dbClient.Schema.Create(ctx); err != nil {
 			return xerrors.Errorf("auto migrate: %w", err)
 		}
 	}
 
 	s.dbClient = dbClient
+	return nil
+}
+
+func (s *Server) versionedMigrate(ctx context.Context, db *sql.DB) error {
+	err := goose.SetDialect(dbDriverName)
+	if err != nil {
+		return xerrors.Errorf("set dialect: %w", err)
+	}
+
+	err = goose.UpContext(ctx, db, "migrations")
+	if err != nil {
+		return xerrors.Errorf("goose up: %w", err)
+	}
+
 	return nil
 }
 
