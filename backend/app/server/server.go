@@ -26,6 +26,7 @@ import (
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/bwmarrin/discordgo"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/locales/en_US"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -111,6 +112,8 @@ func NewAndRun(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return xerrors.Errorf("set model: %w", err)
 	}
+
+	s.setWebFrontend(e)
 
 	err = s.run(ctx, cfg.GetServer(), cfg.GetDiscord(), e, dcMsgHandler)
 	if err != nil {
@@ -254,6 +257,16 @@ func (s *Server) migrate(
 	}
 
 	return nil
+}
+
+func (s *Server) setWebFrontend(e *gin.Engine) {
+	e.NoRoute(ginSPAHandler())
+}
+
+func ginSPAHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.File("frontend-web/index.html")
+	}
 }
 
 func (s *Server) run(
