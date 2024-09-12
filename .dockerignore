@@ -1,10 +1,5 @@
-web/frontend/.quasar/
-web/frontend/.vscode/
-web/frontend/dist/
-web/frontend/node_modules/
-web/frontend/README.md
+frontend/build
+frontend/README.md
 
-backend/sticker-image
-backend/backend
-backend/setting.yaml
+backend/frontend-web
 backend/README.md
