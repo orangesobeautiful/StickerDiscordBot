@@ -41,3 +41,6 @@ app/ent/*
 !app/ent/generate.go
 !app/ent/extemplates
 
+# dev env
+frontend-web
+
