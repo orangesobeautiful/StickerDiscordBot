@@ -6,7 +6,9 @@ import 'package:our_dc_bot/api/model.dart';
 part 'global.g.dart';
 
 final Provider<UIAPIHandler> apiHandlerProvider = Provider((ref) {
-  final handler = UIAPIHandler(Uri.parse('https://dcbot.crazy.localhost'));
+  const apiBaseURL = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+
+  final handler = UIAPIHandler(Uri.parse(apiBaseURL));
   return handler;
 });
 
