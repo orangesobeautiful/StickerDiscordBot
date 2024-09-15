@@ -264,9 +264,9 @@ func (s *Server) setWebFrontend(e *gin.Engine) {
 }
 
 func ginSPAHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.File("frontend-web/index.html")
-	}
+	return gin.WrapH(
+		NewFileServer(http.Dir("frontend-web"), true),
+	)
 }
 
 func (s *Server) run(
