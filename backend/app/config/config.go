@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"backend/app/utils"
 
@@ -46,6 +47,7 @@ type config struct {
 func New() (configInterface Config, err error) {
 	v := viper.New()
 	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.SetConfigType("yaml")
 
 	cfgPath := ""
