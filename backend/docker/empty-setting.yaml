@@ -1,0 +1,65 @@
+debug: false
+server:
+  addr: 0.0.0.0:5000
+  sessionKey:
+    userAuth:
+      # authentication need to be 32 or 64 bytes base64 encoded string
+      authentication:
+      # encryption(optional) need to be 16, 24 or 32 bytes base64 encoded string
+      encryption:
+  cors:
+    allowAllOrigins: true
+    allowOrigins:
+    allowMethods:
+    allowHeaders:
+    exposeHeaders:
+    allowCredentials: false
+    maxAge: 12h
+  cookie:
+    maxAge: 720h
+    httpOnly: true
+    secure: true
+    # 1: Default, 2: Lax, 3: Strict, 4: None
+    sameSite: 3
+
+database:
+  # dsn: host=localhost user=postgres password=password dbname=dbname port=15432 sslmode=disable
+  # postgresql
+  dsn:
+  autoMigrate: false
+
+redis:
+  addr:
+  username:
+  password:
+  db: 0
+
+objectStorage:
+  endpoint:
+  bucketName:
+  accessKeyID:
+  accessKeySecret:
+  publicAccessURL:
+
+vectordatabase:
+  initializeCollection: false
+  collectionName:
+  qdrant:
+    addr:
+    apicredentials:
+      apikey:
+      apikeyrequiretransportsecurity: false
+
+fulltextsearchDatabase:
+  disableMigrate: false
+  meilisearch:
+    addr:
+    apiKey:
+    indexPrefix:
+
+discord:
+  disableRegisterCommand: false
+  token:
+
+openai:
+  token:

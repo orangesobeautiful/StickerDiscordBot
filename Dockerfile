@@ -53,6 +53,7 @@ WORKDIR /app
 
 COPY --from=go_builder /app/server .
 COPY ./backend/migrations ./migrations
+COPY ./backend/docker/empty-setting.yaml ./setting.yaml
 COPY --from=flutter_builder /app/build/web ./frontend-web
 
 CMD ["/app/server"]

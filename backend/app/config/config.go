@@ -45,6 +45,7 @@ type config struct {
 
 func New() (configInterface Config, err error) {
 	v := viper.New()
+	v.AutomaticEnv()
 	v.SetConfigType("yaml")
 
 	cfgPath := ""
